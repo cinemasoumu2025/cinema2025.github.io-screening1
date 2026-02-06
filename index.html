@@ -852,24 +852,11 @@ body {
 }
 
 
-  // GASテンプレート用
-  if (typeof <?= pageType ? 'true' : 'false' ?> !== "undefined") {
-
-  PAGE_TYPE = '<?= pageType ?>';
-  SITE_NO = <?= siteNo ?>;
-
-  } else {
-
   // GitHub Pages用
   const params = new URLSearchParams(window.location.search);
 
   PAGE_TYPE = params.get("page") || "index";
   SITE_NO = Number(params.get("n") || 1);
-  }
-
-
-
-
 
 
 // =============================
