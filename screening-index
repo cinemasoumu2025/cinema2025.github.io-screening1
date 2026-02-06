@@ -1,12 +1,1803 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>My Site</title>
+  <base target="_top">
+<style>
+/* =============================
+   カラートークン
+============================= */
+:root {
+  --frame-color: #6a5142;
+  --bg-washi: #fbfaf7;
+  --ink-black: #0b0b0b;
+  --text-white: #ffffff;
+  --led-green: #3cff6a;
+}
+
+/* =============================
+   全体
+============================= */
+/* =============================
+   全体スクロール修正
+============================= */
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;   /* ← 全体スクロールを有効に */
+  -webkit-overflow-scrolling: touch; /* スマホ滑らかスクロール */
+}
+
+body {
+  background: var(--bg-washi);
+  color: #222;
+  font-family: "Hiragino Mincho ProN","Yu Mincho",serif;
+}
+
+.cookie {
+  background: #fff;
+  border: 1.5px solid var(--frame-color);
+  border-radius: 6px;
+  padding: 10px;
+  overflow: visible;  /* ← auto や hidden は避ける */
+}
+
+/* =============================
+   電光掲示板レイアウト
+============================= */
+#board {
+  margin-top: 16px;
+  font-family: 'Courier New', monospace;
+  color: #000;
+}
+
+/* ===== PC基本 ===== */
+.board-head,
+.board-row {
+  display: grid;
+  grid-template-columns:
+    56px       /* ラベル */
+    96px       /* 開始時刻 */
+    72px       /* 所要時間 */
+    minmax(260px, 1fr); /* 作品名 */
+  gap: 6px;
+  align-items: center;
+}
+
+/* ヘッダー */
+.board-head {
+  font-weight: bold;
+  border-bottom: 1px solid #ccc;
+  padding-bottom: 6px;
+  background: #fff;
+}
+
+/* ラベル */
+.label {
+  text-align: center;
+  font-weight: bold;
+  background: #fff;
+}
+
+.vertical-line {
+  width: 1px;
+  background: #ccc;
+  height: 100%;
+  margin: 0 4px;
+}
+
+
+/* =============================
+   フリップセル（共通・1セル1行）
+============================= */
+.outer {
+  position: relative;
+  height: 2.2em;
+  background: #000;
+  overflow: hidden;
+  perspective: 800px;
+  border-radius: 4px;
+}
+
+/* フリップ本体 */
+.flap {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(#222, #111, #222);
+  color: #fff;
+  font-weight: bold;
+  text-align: center;
+  white-space: nowrap;
+  backface-visibility: hidden;
+}
+
+/* メイン面 */
+.flap.main {
+  display: flex;
+  align-items: center;  /* 縦中央 */
+  justify-content: center; /* 横中央 */
+  height: 100%;
+  font-weight: bold;
+}
+
+
+/* 上下フラップ（参考コード完全準拠） */
+/* 上下フラップ */
+.flap.top,
+.flap.bottom {
+  clip-path: polygon(0 0,100% 0,100% 50%,0 50%);
+  /* display: none; ← フリップ中は JS 側で制御するので初期非表示は ok */
+  
+  display: flex;                /* 追加 */
+  align-items: center;          /* 縦中央 */
+  justify-content: center;      /* 横中央 */
+  height: 50%;                  /* 上下それぞれ半分 */
+  font-family: inherit;          /* main と同じフォント */
+  font-size: inherit;            /* main と同じサイズ */
+  line-height: inherit;          /* main と同じ高さ */
+  font-weight: inherit;          /* main と同じ太さ */
+}
+
+.flap.top {
+  clip-path: polygon(0 0,100% 0,100% 50%,0 50%);
+  display: none;
+}
+
+.flap.bottom {
+  clip-path: polygon(0 50%,100% 50%,100% 100%,0 100%);
+  display: none;
+}
+
+/* =============================
+   数字用フリップ
+============================= */
+.flap.main,
+.flap.top,
+.flap.bottom {
+  font-family: "Microsoft YaHei", sans-serif; /* 数字用フォント */
+  line-height: 2.2em;  /* 高さに合わせて縦中央揃え */
+  font-weight: bold;
+  text-align: center;
+  font-size: 1rem;     /* main と同じサイズ */
+}
+
+/* 境界線 */
+.gap {
+  position: absolute;
+  top: 50%;
+  width: 100%;
+  height: 1px;
+  background: #000;
+  opacity: .6;
+  z-index: 20;
+}
+
+/* =============================
+   時刻・所要時間
+============================= */
+.time-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* 時刻 */
+.time-wrapper .outer {
+  width: 2.6ch;
+}
+
+/* 所要時間（3桁想定） */
+.outer.duration {
+  width: 3.2ch;
+}
+
+.colon,
+.unit {
+  font-weight: bold;
+  color: #000;
+}
+
+/* =============================
+   作品名（完全1行制御）
+============================= */
+.outer.title {
+  height: 2.2em;
+  background: #000;
+  position: relative;
+  overflow: hidden;
+}
+
+/* フリップ用（短文） */
+.flap.title-cell {
+  line-height: 2.2em;
+  font-family: "BIZ UDPゴシック", sans-serif;
+  font-weight: bold;
+  text-align: center;
+  font-size: 1rem;     /* main と同じサイズ */
+}
+
+/* スクロール用（長文） */
+.title-scroll {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  overflow: hidden;
+  color: #fff;
+  font-family: "BIZ UDPゴシック", sans-serif;
+  font-size: 0.95rem;
+}
+
+.title-scroll span {
+  white-space: nowrap;
+  animation: scrollText 12s linear infinite;
+}
+
+/* 切替 */
+.outer.title.show-scroll .flap-container {
+  display: none;
+}
+.outer.title.show-scroll .title-scroll {
+  display: flex;
+}
+
+/* =============================
+   フリップ中ブラックアウト
+============================= */
+.outer.black .flap {
+  background: #000;
+  color: transparent;
+}
+
+
+
+/* =============================
+   備考スクロール（完全版）
+============================= */
+/* 備考行全体を1行分の高さに */
+.board-notes {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.board-notes .scroll {
+  background: #000;               /* 黒背景 */
+  color: #00ff66;                 /* LEDグリーン */
+  padding: 0.3em 0.6em;
+  border-radius: 4px;
+  font-family: "BIZ UDPゴシック", sans-serif;
+  height: 2.2em;                  /* フリップセルと同じ */
+  line-height: 2.2em;             /* 縦中央揃え */
+  box-sizing: border-box;
+  
+  position: relative;              /* 基準 */
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+}
+
+/* 横スクロール用 span */
+.board-notes .scroll span {
+  position: absolute;
+  left: 0;
+  transform: translateX(var(--start-x));
+  display: inline-block;
+  font-family: "BIZ UDPゴシック", sans-serif;
+  white-space: nowrap;
+  will-change: transform;
+  animation-name: scrollText;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-duration: var(--scroll-duration, 15s);
+}
+
+/* 赤点滅モード */
+.board-notes .scroll.red span {
+  color: red;
+  font-weight: bold;
+  animation: blinkRed 1s step-start infinite;
+}
+
+/* =============================
+   アニメーション
+============================= */
+@keyframes scrollText {
+  from { transform: translateX(var(--start-x)); }
+  to   { transform: translateX(var(--end-x)); }
+}
+
+@keyframes blinkRed {
+  50% { opacity: 0; }
+}
+
+/*==============================
+    TTbutton
+==============================*/
+.tt-btn {
+  border-radius: 999px;
+  padding: 6px 14px;
+  border: none;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.tt-btn.enabled {
+  background: #000;
+  color: #fff;
+}
+
+.tt-btn.disabled {
+  background: #999;
+  color: #fff;
+  cursor: default;
+}
+#timetableHeader {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+#ttDate {
+  text-align: center;
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+
+/* =============================
+   タイムテーブル罫線
+============================= */
+#timetable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+}
+
+#timetable th,
+#timetable td {
+  border: 1px solid #999;
+  padding: 6px 8px;
+  font-family: "BIZ UDPゴシック", sans-serif;
+  font-size: 0.95rem;
+}
+
+#timetable thead th {
+  background: #f2f2f2;
+  font-weight: bold;
+}
+
+#timetable tbody tr:nth-child(even) {
+  background: #fafafa;
+}
+
+/* 作品名はクリックできると分かるように */
+.tt-title {
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* =============================
+   モーダル全体
+============================= */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+/* 非表示 */
+.modal.hidden {
+  display: none;
+}
+
+.modal-content{
+  background: #ffffff;
+  border-radius: 28px;
+  padding: 20px;
+  width: 90%;
+  max-width: 420px;
+
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+
+  box-shadow: 0 6px 15px rgba(0,0,0,.25);
+}
+
+.modal-body{
+  flex: 1;                 /* ← ここ重要 */
+  overflow-y: auto;
+  margin: 10px 0 12px;
+  -webkit-overflow-scrolling: touch;
+}
+/* ===== 戻るボタン（下固定） ===== */
+.modal-back{
+  width: 100%;
+  padding: 12px;
+  border: none;
+  background: #1b1b1b;
+  color: #fff;
+  font-weight: bold;
+  font-size: 16px;
+  border-radius: 20px;
+  cursor: pointer;
+
+  flex-shrink: 0;
+
+  box-shadow:
+    0 6px 10px rgba(0,0,0,.15),
+    inset 0 3px 5px rgba(255,255,255,.35);
+  transition: transform .1s ease, box-shadow .2s ease;
+}
+
+.modal-back:hover{
+  transform: translateY(-2px);
+  box-shadow:
+    0 8px 14px rgba(0,0,0,.2),
+    inset 0 3px 5px rgba(255,255,255,.45);
+}
+
+.modal-back:active{
+  transform: translateY(0);
+}
+
+#modalClose {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  font-size: 20px;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+#modalImage {
+  max-width: 100%;
+  height: auto;
+  margin-top: 10px;
+  border-radius: 6px;
+}
+
+/*============================
+リンクエリア
+============================*/
+/* 下部リンク（カレンダー直下表示） */
+.link-area{
+  display: flex;
+  flex-wrap: wrap;            /* 折り返し許可 */
+  grid-template-columns: repeat(3, 1fr); /* ← 3列固定 */
+  margin: 12px 15px 0;
+  padding: 10px 0;
+  gap: 10px;
+  justify-content:center;
+  overflow: visible;   /* 親のスクロールを阻害しない */
+}.link-area a {
+  flex: 1 1 calc(33.333% - 10px); /* 3列化 */
+  text-align: center;
+}
+
+.link-area button{
+  flex: 1 1 120px;
+  border:none;
+  border-radius: 18px;
+  padding: 10px 14px;
+  background: #1b1b1b;
+  color:#fff;
+  font-weight: 800;
+  cursor:pointer;
+  box-shadow: 0 6px 12px rgba(0,0,0,0.12);
+}
+.action-button {
+  display: inline-block;
+  padding: 10px 16px;
+  border-radius: 18px;
+  background-color: #1b1b1b;
+  color: #fff;
+  font-weight: bold;
+  text-decoration: none;
+  text-align: center;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  transition: transform 0.1s ease;
+}
+
+.action-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+}
+
+
+
+
+
+
+/* =============================
+   📱 スマホ対応
+============================= */
+@media (max-width: 640px) {
+
+    .board-head {
+    grid-template-columns:
+      48px  /* ラベル */
+      72px  /* 開始時刻 */
+      60px  /* 所要時間 */
+      1fr;  /* 作品名 */
+    gap: 4px;
+  }
+
+  /* PCと同じ1行構成を維持 */
+  .board-row {
+    grid-template-columns:
+      48px        /* ラベル */
+      72px        /* 開始時刻 */
+      60px        /* 所要時間 */
+      1fr;        /* 作品名 */
+    gap: 4px;
+    align-items: center;
+  }
+
+  /* フォント微調整 */
+  .outer {
+    height: 2em;
+  }
+
+  .flap {
+    font-size: 0.9rem;
+  }
+
+  .outer.title {
+    font-size: 0.9rem;
+  }
+    #timetableWrapper {
+    overflow-x: auto;
+  }
+  #timetable th,
+  #timetable td {
+    font-size: 0.85rem;
+    padding: 4px 6px;
+    white-space: normal;  /* ← 作品名だけ折り返し可能に */
+  }
+
+  /* 作品名のみ2行まで許可 */
+  #timetable td:nth-child(4) { 
+    display: -webkit-box;
+    -webkit-line-clamp: 2;  /* 最大2行 */
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* その他列は1行固定 */
+  #timetable td:not(:nth-child(4)) {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* テーブル下に固定備考 */
+  #ttNotes {
+    margin-top: 8px;
+    padding: 6px 8px;
+    font-size: 0.85rem;
+    background: #fafafa;
+    border-top: 1px solid #ccc;
+  }
+
+  /* 注意文はその下1行 */
+  #ttNotes p:last-child {
+    margin-top: 4px;
+  }
+
+  /* 備考は縦積みしない */
+  .board-notes {
+    grid-template-columns: 48px 1fr;
+  }
+
+  .notes-scroll {
+    font-size: 0.9rem;
+  }
+  .board-notes .scroll {
+    height: 2em;
+    line-height: 2em;
+    font-size: 0.9rem;
+    padding: 0.2em 0.4em;
+  }
+
+  .modal{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+
+  display: none;
+  justify-content: center;
+  align-items: flex-end;   /* ← center → flex-end */
+
+  padding-bottom: 16px;    /* ← 下余白 */
+
+  z-index: 9999;
+  }
+
+  .modal-content {
+    width: 94vw;
+    max-height: 90vh;
+    padding: 14px;
+  }
+
+  #modalTitle {
+    font-size: 1.1rem;
+  }
+
+  #modalDesc {
+    font-size: 0.95rem;
+  }
+
+}
+
+
+</style>
 </head>
 <body>
 
-<h1>サイト準備OK</h1>
+<!-- タイトル -->
+<div id="titleCookie" class="cookie">
+  <div class="title" id="eventTitle"></div>
+  <div id="nowDateTime"></div>
+  <div class="desc" id="eventDesc"></div>
+</div>
+
+<!-- 電光掲示板 -->
+<div id="board" class="cookie">
+
+  <!-- ヘッダ -->
+  <div class="board-head">
+    <div></div>
+    <div>開始時刻</div>
+    <div>所要時間</div>
+    <div>作品名</div>
+  </div>
+
+  <!-- ================= 次 ================= -->
+  <div class="board-row">
+    <div class="label">次</div>
+
+    <!-- 開始時刻 -->
+    <div class="time-wrapper">
+      <div class="outer" id="nextStartHH">
+        <div class="flap-container">
+          <div class="flap main"></div>
+          <div class="flap top"></div>
+          <div class="flap bottom"></div>
+          <div class="gap"></div>
+        </div>
+      </div>
+      <span class="colon">:</span>
+      <div class="outer" id="nextStartMM">
+        <div class="flap-container">
+          <div class="flap main"></div>
+          <div class="flap top"></div>
+          <div class="flap bottom"></div>
+          <div class="gap"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 所要時間 -->
+    <div class="time-wrapper">
+      <div class="outer duration" id="nextDurationNum">
+        <div class="flap-container">
+          <div class="flap main"></div>
+          <div class="flap top"></div>
+          <div class="flap bottom"></div>
+          <div class="gap"></div>
+        </div>
+      </div>
+      <span class="unit">分</span>
+    </div>
+
+    <!-- 作品名 -->
+    <div class="outer title" id="nextTitle">
+      <!-- フリップ用（短文） -->
+      <div class="flap-container">
+        <div class="flap main title-cell"></div>
+        <div class="flap top"></div>
+        <div class="flap bottom"></div>
+        <div class="gap"></div>
+      </div>
+
+      <!-- スクロール用（長文） -->
+      <div class="title-scroll">
+        <span></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= 次々回 ================= -->
+  <div class="board-row">
+    <div class="label">次々回</div>
+
+    <!-- 開始時刻 -->
+    <div class="time-wrapper">
+      <div class="outer" id="next2StartHH">
+        <div class="flap-container">
+          <div class="flap main"></div>
+          <div class="flap top"></div>
+          <div class="flap bottom"></div>
+          <div class="gap"></div>
+        </div>
+      </div>
+      <span class="colon">:</span>
+      <div class="outer" id="next2StartMM">
+        <div class="flap-container">
+          <div class="flap main"></div>
+          <div class="flap top"></div>
+          <div class="flap bottom"></div>
+          <div class="gap"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 所要時間 -->
+    <div class="time-wrapper">
+      <div class="outer duration" id="next2DurationNum">
+        <div class="flap-container">
+          <div class="flap main"></div>
+          <div class="flap top"></div>
+          <div class="flap bottom"></div>
+          <div class="gap"></div>
+        </div>
+      </div>
+      <span class="unit">分</span>
+    </div>
+
+    <!-- 作品名 -->
+    <div class="outer title" id="next2Title">
+      <div class="flap-container">
+        <div class="flap main title-cell"></div>
+        <div class="flap top"></div>
+        <div class="flap bottom"></div>
+        <div class="gap"></div>
+      </div>
+      <div class="title-scroll">
+        <span></span>
+      </div>
+    </div>
+  </div>
+  <!-- 備考（独立枠） -->
+  <div class="board-notes">
+  <div class="notes-label">備考</div>
+  <div class="scroll notes-scroll" id="nextNotes">
+    <span>---</span>
+  </div>
+</div>
+
+
+</div>
+
+<!-- タイムテーブル、モーダル、ボタンは元のまま -->
+<div id="timetableCookie" class="cookie">
+  <div id="timetableWrapper" class="cookie">
+    <div id="timetableHeader">
+      <button id="prevDay" class="tt-btn">◀前の日へ</button>
+      <span id="ttDate"></span>
+      <button id="nextDay" class="tt-btn">次の日へ▶</button>
+    </div>
+    <table id="timetable">
+      <thead>
+        <tr>
+          <th>番号</th>
+          <th>開始時刻</th>
+          <th>所要時間</th>
+          <th>作品名</th>
+          <th>注意</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div>注意記号に関する説明</div>
+    <div id="ttNotes">      
+      <p></p>
+    </div>
+    <div>開始時刻までに上映会場内にご入場ください</div>
+  </div>
+</div>
+
+<div id="modal" class="modal hidden">
+  <div class="modal-content">
+    <button id="modalClose">×</button>
+    <h2 id="modalTitle"></h2>
+    <p id="modalDesc"></p>
+    <div id="modalCaution"></div>
+    <div id="modalNote"></div>
+    <img id="modalImage" />
+    <button id="modalBack">戻る</button>
+  </div>
+</div>
+
+<div id="buttonCookie" class="cookie">
+<!-- リンクエリア -->
+<div id="linkArea" class="link-area" ></div>
+</div>
+
+  <script>
+
+  let PAGE_TYPE;
+  let SITE_NO;
+
+  const API_URL = "https://script.google.com/macros/s/AKfycbxrcyGI_oNgn-ZrcwTSdOidc9Yx5DbBmelYMVbnr9_hMExokR9cQAet3P4LQ70rCBO4DA/exec";
+  function callGAS(action, params = {}) {
+
+  // ===== GAS環境 =====
+  if (window.google?.script?.run) {
+    return new Promise(resolve => {
+      google.script.run
+        .withSuccessHandler(resolve)[action](...Object.values(params));
+    });
+  }
+
+  // ===== GitHub環境 =====
+  const url = new URL(API_URL);
+  url.searchParams.set("api","true");
+  url.searchParams.set("action", action);
+
+  Object.entries(params).forEach(([k,v])=>{
+    url.searchParams.set(k,v);
+  });
+
+  return fetch(url).then(r => r.json());
+}
+
+
+  // GASテンプレート用
+  if (typeof <?= pageType ? 'true' : 'false' ?> !== "undefined") {
+
+  PAGE_TYPE = '<?= pageType ?>';
+  SITE_NO = <?= siteNo ?>;
+
+  } else {
+
+  // GitHub Pages用
+  const params = new URLSearchParams(window.location.search);
+
+  PAGE_TYPE = params.get("page") || "index";
+  SITE_NO = Number(params.get("n") || 1);
+  }
+
+
+
+
+
+
+// =============================
+// 電光掲示板 完全制御ロジック【完成版】
+// =============================
+
+let displayData = { next: null, next2: null };
+let worksList = [];
+let flipping = false;
+let lastNotesText = '';
+
+const cells = {
+  next: {
+    hh: document.getElementById('nextStartHH'),
+    mm: document.getElementById('nextStartMM'),
+    dur: document.getElementById('nextDurationNum'),
+    title: document.getElementById('nextTitle')
+  },
+  next2: {
+    hh: document.getElementById('next2StartHH'),
+    mm: document.getElementById('next2StartMM'),
+    dur: document.getElementById('next2DurationNum'),
+    title: document.getElementById('next2Title')
+  }
+};
+
+const scrollNotes = document.getElementById('nextNotes');
+
+// =============================
+// 共通ユーティリティ
+// =============================
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+function setCellText(el, text) {
+  const main = el.querySelector('.flap.main');
+  const top = el.querySelector('.flap.top');
+  const bottom = el.querySelector('.flap.bottom');
+  main.textContent = top.textContent = bottom.textContent = text;
+}
+
+function safe2(v) {
+  return isNaN(v) ? '--' : String(v).padStart(2, '0');
+}
+
+// =============================
+// フリップ（参考コード完全準拠）
+// =============================
+async function flipFlap(el, nextText, duration = 100) {
+  const main = el.querySelector('.flap.main');
+  const top = el.querySelector('.flap.top');
+  const bottom = el.querySelector('.flap.bottom');
+
+  top.textContent = nextText;
+  top.style.display = bottom.style.display = 'block';
+
+  main.style.zIndex = 11;
+  bottom.style.zIndex = 12;
+  top.style.zIndex = 10;
+
+  let anim = main.animate([{ transform: 'rotateX(-90deg)' }], { duration });
+  await anim.finished;
+
+  main.style.transform = 'rotateX(90deg)';
+  main.textContent = nextText;
+
+  main.style.zIndex = 11;
+  bottom.style.zIndex = 10;
+  top.style.zIndex = 12;
+
+  anim = main.animate([{ transform: 'rotateX(0deg)' }], {
+    duration,
+    fill: 'forwards'
+  });
+  await anim.finished;
+
+  bottom.textContent = nextText;
+  top.style.display = bottom.style.display = 'none';
+}
+
+// =============================
+// 数字フリップ
+// =============================
+async function flipNumber(el, from, to, step, durationMs) {
+  const end = Date.now() + durationMs;
+  let v = from;
+
+  while (Date.now() < end && v <= to) {
+    await flipFlap(el, safe2(v));
+    v += step;
+  }
+  setCellText(el, safe2(to));
+}
+// =============================
+// 作品名ランダム回転（Works 使用）
+// =============================
+function clearNotes(){
+  lastNotesText = '';
+  scrollNotes.innerHTML = '<span>---</span>';
+  scrollNotes.dataset.currentText = '';
+}
+
+async function spinRandomTitlesSteps(el, totalSteps) {
+  if (!worksList || !worksList.length) return;
+
+  // 回転中はスクロール無効
+  el.classList.remove('show-scroll');
+  el.querySelector('.title-scroll span').textContent = '';
+
+  const flapContainer = el.querySelector('.flap-container');
+  const flap = flapContainer.querySelector('.flap.main');
+  const top = flapContainer.querySelector('.flap.top');
+  const bottom = flapContainer.querySelector('.flap.bottom');
+
+  for (let i = 0; i < totalSteps; i++) {
+    const title = worksList[Math.floor(Math.random() * worksList.length)];
+
+    // 上フラップに次のタイトルをセットして表示
+    top.textContent = title;
+    top.style.display = bottom.style.display = 'block';
+
+    flap.style.zIndex = 11;
+    bottom.style.zIndex = 12;
+    top.style.zIndex = 10;
+
+    // 回転アニメーション（上半分折りたたみ）
+    let anim = flap.animate([{ transform: 'rotateX(-90deg)' }], { duration: FLIP_MS });
+    await anim.finished;
+
+    flap.style.transform = 'rotateX(90deg)';
+    flap.textContent = title;
+
+    flap.style.zIndex = 11;
+    bottom.style.zIndex = 10;
+    top.style.zIndex = 12;
+
+    // 回転戻し
+    anim = flap.animate([{ transform: 'rotateX(0deg)' }], { duration: FLIP_MS, fill: 'forwards' });
+    await anim.finished;
+
+    bottom.textContent = title;
+    top.style.display = bottom.style.display = 'none';
+  }
+}
+
+
+
+
+// =============================
+// タイトル制御
+// =============================
+function setTitle(el, text) {
+  const isLong = text.length > 14;
+
+  const flap = el.querySelector('.flap.main.title-cell');
+  const scroll = el.querySelector('.title-scroll span');
+
+  el.classList.toggle('show-scroll', isLong);
+
+  if (isLong) {
+    flap.textContent = '';
+    scroll.textContent = text;
+
+    const boxWidth = el.offsetWidth;
+    const textWidth = scroll.offsetWidth;
+
+    if (textWidth <= boxWidth) return; // 長さ不足ならスクロール不要
+
+    const speed = 60; // px/sec
+    const distance = boxWidth + textWidth;
+    const duration = distance / speed;
+
+    scroll.style.setProperty('--start-x', `${boxWidth}px`);
+    scroll.style.setProperty('--end-x', `-${textWidth}px`);
+    scroll.style.setProperty('--scroll-duration', `${duration}s`);
+    scroll.style.animation = `scrollText var(--scroll-duration) linear infinite`;
+  } else {
+    flap.textContent = text;
+    scroll.textContent = '';
+  }
+}
+
+function activateTitleScroll(el) {
+  const span = el.querySelector('.title-scroll span');
+  const text = span.textContent;
+  if (!text) return;
+
+  const textWidth = span.offsetWidth;
+  const boxWidth = el.offsetWidth;
+  if (textWidth <= boxWidth) return;
+
+  const speed = 120; // px/s
+  const distance = boxWidth + textWidth;
+  const duration = distance / speed;
+
+  span.style.setProperty('--start-x', `${boxWidth}px`);
+  span.style.setProperty('--end-x', `-${textWidth}px`);
+  span.style.setProperty('--scroll-duration', `${duration}s`);
+  span.style.animation = `scrollText var(--scroll-duration) linear infinite`;
+}
+
+
+
+function getCurrentNumber(el) {
+  const text = el.querySelector('.flap.main')?.textContent;
+  const n = parseInt(text, 10);
+  return isNaN(n) ? 0 : n;
+}
+
+// =============================
+// スクロール
+// =============================
+
+function updateNotes(data) {
+  const text = [
+    data?.notes,
+    typeof shopInfo !== 'undefined' ? shopInfo : '',
+    typeof recruitInfo !== 'undefined' ? recruitInfo : ''
+  ].filter(Boolean).join('　');
+
+  if (text === lastNotesText) return;
+  lastNotesText = text;
+}
+
+// =============================
+// ブラックアウト
+// =============================
+function setBlack(target, on) {
+  Object.values(cells[target]).forEach(el => {
+    el.classList.toggle('black', on);
+  });
+}
+
+function calcStepsToLimit(current, limit, step) {
+  if (current > limit) return 0;
+  return Math.floor((limit - current) / step) + 1;
+}
+
+const FLIP_MS = 100;
+function getCurrentValue(el) {
+  const text = el.querySelector('.flap.main')?.textContent;
+  const n = parseInt(text, 10);
+  return isNaN(n) ? 0 : n;
+}
+
+
+function calcPreBlackTotalSteps(cell) {
+  const hhNow  = getCurrentValue(cell.hh);
+  const mmNow  = getCurrentValue(cell.mm);
+  const durNow = getCurrentValue(cell.dur);
+
+  const hhSteps  = Math.max(0, Math.floor((26 - hhNow) / 1) + 1);
+  const mmSteps  = Math.max(0, Math.floor((59 - mmNow) / 1) + 1);
+  const durSteps = Math.max(0, Math.floor((180 - durNow) / 5) + 1);
+
+  // 一番長いセルに全体を合わせる
+  return Math.max(hhSteps, mmSteps, durSteps);
+}
+
+async function flipBlack(el, durationMs) {
+  el.classList.add('black');
+
+  const end = Date.now() + durationMs;
+  let v = 0;
+
+  while (Date.now() < end) {
+    await flipFlap(el, safe2(v % 100));
+    v++;
+  }
+}
+async function flipUntilLimitWithBlack(el, start, limit, step, totalSteps) {
+  let v = start;
+  let steps = 0;
+
+  // ① 上限まで通常回転
+  while (v <= limit && steps < totalSteps) {
+    await flipFlap(el, safe2(v), FLIP_MS);
+    v += step;
+    steps++;
+  }
+
+  // ② 残りは黒回転
+  while (steps < totalSteps) {
+    el.classList.add('black');
+    await flipFlap(el, safe2(Math.floor(Math.random() * 99)), FLIP_MS);
+    steps++;
+  }
+}
+
+
+
+
+
+
+// =============================
+// メイン更新シーケンス
+// =============================
+async function preBlackSequence(target) {
+  const cell = cells[target];
+  clearNotes();
+
+  // ① 必要ステップ数を算出
+  const totalSteps = calcPreBlackTotalSteps(cell);
+  const A = totalSteps * FLIP_MS;
+
+  await Promise.all([
+    flipUntilLimitWithBlack(
+      cell.hh,
+      getCurrentValue(cell.hh),
+      26,
+      1,
+      totalSteps
+    ),
+    flipUntilLimitWithBlack(
+      cell.mm,
+      getCurrentValue(cell.mm),
+      59,
+      1,
+      totalSteps
+    ),
+    flipUntilLimitWithBlack(
+      cell.dur,
+      getCurrentValue(cell.dur),
+      180,
+      5,
+      totalSteps
+    ),
+    spinRandomTitlesSteps(cell.title, totalSteps)
+  ]);
+
+  // 完全ブラック
+  setBlack(target, true);
+
+  setCellText(cell.hh, '00');
+  setCellText(cell.mm, '00');
+  setCellText(cell.dur, '00');
+}
+
+
+async function fetchNextData() {
+  return new Promise(resolve => {
+      callGAS("getNextScheduleForBoard",{siteNo:SITE_NO})
+      .then(resolve);
+  });
+}
+
+/*目標値までのステップ数計算*/
+
+function calcRevealSteps(targetValue, step) {
+  if (targetValue <= 0) return 1;
+  return Math.floor(targetValue / step) + 1;
+}
+
+
+/*ステップ制御型*/
+async function flipUntilTarget(el, target, step, totalSteps) {
+  let v = 0;
+  let steps = 0;
+
+  while (steps < totalSteps) {
+    if (v <= target) {
+      await flipFlap(el, safe2(v), FLIP_MS);
+      v += step;
+    } else {
+      // 目標到達後は何もしない（表示固定）
+      await sleep(FLIP_MS);
+    }
+    steps++;
+  }
+
+  setCellText(el, safe2(target));
+}
+
+
+async function revealSequence(target, data) {
+  const cell = cells[target];
+  setBlack(target, false);
+
+  const [h, m] = data.startTime.split(':').map(Number);
+  const d = data.durationMin;
+
+  // ① 各セルの必要ステップ
+  const hhSteps  = calcRevealSteps(h, 1);
+  const mmSteps  = calcRevealSteps(m, 1);
+  const durSteps = calcRevealSteps(d, 5);
+
+  // ② 最大ステップ数に同期
+  const totalSteps = Math.max(hhSteps, mmSteps, durSteps);
+  const totalDuration = totalSteps * FLIP_MS;
+
+  await Promise.all([
+    flipUntilTarget(cell.hh, h, 1, totalSteps),
+    flipUntilTarget(cell.mm, m, 1, totalSteps),
+    flipUntilTarget(cell.dur, d, 5, totalSteps),
+    spinRandomTitlesSteps(cell.title, totalSteps)
+  ]);
+
+  setTitle(cell.title, data.title);
+  activateTitleScroll(cell.title);
+  updateNotesBoard();
+}
+
+
+
+async function updateBoard() {
+  if (flipping) return;
+  flipping = true;
+
+  /* ===== A. プレブラック（5秒） ===== */
+  await Promise.all([
+    preBlackSequence('next', 5000),
+    preBlackSequence('next2', 5000)
+  ]);
+
+  /* ===== B. ブラック維持＋新データ取得 ===== */
+  const list = await fetchNextData();
+  displayData.next = list[0];
+  displayData.next2 = list[1];
+
+  /* ===== C + D. 黒解除 → 正解 ===== */
+  await revealSequence('next', displayData.next, 2500);
+
+  await sleep(1200);
+
+  if (displayData.next2) {
+    await revealSequence('next2', displayData.next2, 2000);
+  }
+
+  flipping = false;
+}
+
+
+
+// =============================
+// 初回起動
+// =============================
+async function firstBoot() {
+  const list = await new Promise(resolve => {
+      callGAS("getNextScheduleForBoard",{siteNo:SITE_NO})
+      .then(resolve);
+  });
+
+  displayData.next = list[0];
+  displayData.next2 = list[1];
+  updateNotesBoard();
+  updateBoard(displayData.next);
+}
+
+// =============================
+// 時刻監視（開始2分後）
+// =============================
+function watchTime() {
+  if (!displayData.next || flipping) return;
+
+  const [h, m] = displayData.next.startTime.split(':').map(Number);
+  const start = new Date();
+  start.setHours(h, m, 0, 0);
+
+  if (Date.now() - start >= 2 * 60 * 1000) {
+    firstBoot();
+  }
+}
+
+// =============================
+// モーダル連携（掲示板タイトル）
+// =============================
+cells.next.title.onclick = () => {
+  if (flipping) return;
+  if (!displayData.next?.workId) return;
+
+  openWorkModal(displayData.next.workId); // ★ これだけ
+};
+
+cells.next2.title.onclick = () => {
+  if (flipping) return;
+  if (!displayData.next2?.workId) return;
+
+  openWorkModal(displayData.next2.workId); // ★ これだけ
+};
+
+
+
+// =============================
+// 備考欄
+// =============================
+let lastNoteText = '';
+let lastNoteMode = '';
+
+async function updateNotesBoard() {
+
+  const res = await callGAS("getBoardNotes",{siteNo:SITE_NO});
+
+  let text = '';
+  let mode = res.mode || 'none';
+
+  if (mode === 'none') {
+    text = '---';
+  } else if (mode === 'alert') {
+    text = res.text || 'まもなく上映開始';
+  } else if (res.text) {
+    text = res.text;
+  } else {
+    text = '---';
+  }
+
+  const isAlert = mode === 'alert';
+
+  if (text === lastNoteText && mode === lastNoteMode) return;
+
+  lastNoteText = text;
+  lastNoteMode = mode;
+
+  setScrollText(scrollNotes, text, isAlert);
+}
+
+
+function setScrollText(el, text, isAlert = false) {
+
+  // ★ 同一テキストかつ alert でなければスクロール維持
+  if (el.dataset.currentText === text && !isAlert) return;
+
+  el.dataset.currentText = text;
+
+  el.innerHTML = '';
+  const span = document.createElement('span');
+  span.textContent = text;
+
+  if (isAlert) {
+    span.style.color = 'red';
+    span.style.animation = 'blinkRed 1s step-start infinite';
+  } else {
+    span.style.color = '#00ff66';
+  }
+
+  el.appendChild(span);
+
+  requestAnimationFrame(() => {
+    if (isAlert) return;
+    if (!text || text === '---') return;
+
+    const textWidth = span.offsetWidth;
+    const boxWidth = el.offsetWidth;
+    const speed = 120;
+    const distance = boxWidth + textWidth;
+    const duration = distance / speed;
+
+    span.style.setProperty('--start-x', `${boxWidth}px`);
+    span.style.setProperty('--end-x', `-${textWidth}px`);
+    span.style.setProperty('--scroll-duration', `${duration}s`);
+
+    span.style.animation = `scrollText var(--scroll-duration) linear infinite`;
+  });
+}
+
+// 回転終了後に再更新
+updateNotesBoard();
+
+
+
+// =============================
+// 初期化
+// =============================
+window.addEventListener('load', () => {
+  callGAS("getWorksList").then(list => worksList = list);
+  firstBoot();
+  setInterval(updateNotesBoard, 30000);
+  updateNotesBoard(); // 初回実行
+  setInterval(watchTime, 1000);
+});
+
+// ===== 電光掲示板終了 =====
+
+// =============================
+// タイムテーブル（日単位・完全制御）【修正版】
+// =============================
+
+let timetableDays = [];
+let dayIndex = 0;
+
+// 初期ロード
+function initTimetable() {
+  console.log('initTimetable called, PAGE_TYPE=', PAGE_TYPE);
+
+  callGAS("getEventTimetableBySite", { siteNo: SITE_NO })
+  .then(days => {
+    console.log('timetable days=', days);
+
+    if (!days || days.length === 0) {
+      document.getElementById('timetableCookie').style.display = 'none';
+      return;
+    }
+
+    timetableDays = days;
+    dayIndex = getDefaultDayIndex();
+    renderDay();
+    updateDayButtons();
+  });
+  // ===== タイムテーブル自動更新（5分）=====
+  if (['index', 'top'].includes(PAGE_TYPE)) {
+  setInterval(() => {
+      callGAS("getEventTimetableBySite", { siteNo: SITE_NO })
+  .then(days => {
+      if (!days || !days.length) return;
+
+      timetableDays = days;
+      if (dayIndex >= timetableDays.length) {
+        dayIndex = timetableDays.length - 1;
+      }
+      renderDay();
+      updateDayButtons();
+    });
+  }, 5 * 60 * 1000); // 5分
+  }
+}
+
+
+// デフォルト表示日
+function getDefaultDayIndex() {
+  const today = new Date();
+
+  for (let i = 0; i < timetableDays.length; i++) {
+    const d = timetableDays[i];
+    const date = new Date(d.year, d.month - 1, d.day);
+    if (today <= date) return i;
+  }
+  return timetableDays.length - 1;
+}
+
+// 1日分描画
+function renderDay() {
+  const day = timetableDays[dayIndex];
+
+  document.getElementById('ttDate').textContent =
+    `${day.month}月${day.day}日`;
+
+  const tbody = document.querySelector('#timetable tbody');
+  tbody.innerHTML = '';
+
+  // ===== 表示用に並び替え =====
+  const sortedRows = [...day.rows].sort((a, b) => {
+    const aEnded = a.startTime === '上映終了' || a.startTime === '上映中止';
+    const bEnded = b.startTime === '上映終了' || b.startTime === '上映中止';
+
+    // 上映終了は必ず後ろ
+    if (aEnded && !bEnded) return 1;
+    if (!aEnded && bEnded) return -1;
+
+    // 両方時刻あり → 時刻比較
+    if (!aEnded && !bEnded) {
+      return a.startTime.localeCompare(b.startTime);
+    }
+
+    return 0;
+  });
+
+  sortedRows.forEach((row, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${i + 1}</td>
+      <td>${row.startTime}</td>
+      <td>約${row.duration}分</td>
+      <td class="tt-title" data-workid="${row.workId || ''}">
+      ${row.title}
+      </td>
+      <td>${row.caution || ''}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById('ttNotes').innerHTML = `
+    <p>A＝お子様でもお楽しみいただけます</p>
+    <p>B＝流血描写を含みます　観覧の際はご注意ください</p>
+    <p>C＝飲酒や喫煙の描写を含みます　観覧の際はご注意ください</p>
+    <p>D＝災害描写を含みます　観覧の際はご注意ください</p>
+    <p>E＝一般のお客様はご覧いただけません</p>
+  `;
+}
+
+// =============================
+// 前へ・次へ ボタン
+// =============================
+
+document.getElementById('prevDay').onclick = () => {
+  if (dayIndex <= 0) return;
+  dayIndex--;
+  renderDay();
+  updateDayButtons();
+};
+
+document.getElementById('nextDay').onclick = () => {
+  if (dayIndex >= timetableDays.length - 1) return;
+  dayIndex++;
+  renderDay();
+  updateDayButtons();
+};
+
+function updateDayButtons() {
+  setDayButton('prevDay', dayIndex > 0);
+  setDayButton('nextDay', dayIndex < timetableDays.length - 1);
+}
+
+function setDayButton(id, enabled) {
+  const btn = document.getElementById(id);
+  btn.disabled = !enabled;
+  btn.classList.toggle('enabled', enabled);
+  btn.classList.toggle('disabled', !enabled);
+}
+
+// =============================
+// 初期化
+// =============================
+
+window.addEventListener('load', () => {
+  const showTimetablePages = ['index', 'top']; // ← 表示したいページ
+
+  if (showTimetablePages.includes(PAGE_TYPE)) {
+    initTimetable();
+  } else {
+    const el = document.getElementById('timetableCookie');
+    if (el) el.style.display = 'none';
+  }
+});
+
+document.addEventListener('click', e => {
+  const cell = e.target.closest('.tt-title');
+  if (!cell) return;
+
+  const workId = cell.dataset.workid;
+  if (!workId) return;
+
+  openWorkModal(workId);
+});
+
+
+
+
+/*タイムテーブル　終*/
+/*モーダルはじめ*/
+function openWorkModal(workId) {
+  if (!workId) return;
+
+  document.body.style.overflow = 'hidden';
+  document.getElementById('modal').classList.remove('hidden');
+
+  // ① skeleton 表示
+  openModalSkeleton();
+
+  // ② キャッシュがあれば即描画
+  if (workDetailCache[workId]) {
+    showModal(workDetailCache[workId]);
+    return;
+  }
+
+  // ③ なければ GAS 取得
+  callGAS("getWorkDetail", { workId })
+  .then(res => {
+    if (!res) return;
+    workDetailCache[workId] = res;
+    showModal(res);
+  });
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.add('hidden');
+  document.body.classList.remove('modal-open'); // スクロール復活
+}
+
+document.getElementById('modalClose').onclick = closeModal;
+document.getElementById('modalBack').onclick = closeModal;
+
+
+
+
+function openModalSkeleton() {
+  document.getElementById('modalTitle').textContent = '読み込み中…';
+  document.getElementById('modalDesc').textContent = '';
+  document.getElementById('modalCaution').innerHTML = '';
+  document.getElementById('modalNote').textContent = '';
+  document.getElementById('modalImage').src = '';
+
+  document.body.style.overflow = 'hidden';
+  document.getElementById('modal').classList.remove('hidden');
+}
+
+
+
+
+
+  window.addEventListener('load', () => {
+  callGAS("logPageView", {
+  pageType: PAGE_TYPE,
+  siteNo: SITE_NO
+});
+
+  });
+
+
+
+function showModal(data) {
+  if (!data) return;
+
+  document.getElementById('modalTitle').textContent = data.title;
+  document.getElementById('modalDesc').textContent = data.description || '';
+
+  const cautionDiv = document.getElementById('modalCaution');
+  cautionDiv.innerHTML = '';
+  (data.cautions || []).forEach(c => {
+    const p = document.createElement('p');
+    p.textContent = c;
+    cautionDiv.appendChild(p);
+  });
+
+  document.getElementById('modalNote').textContent = data.notes || '';
+  document.getElementById('modalImage').src = data.image || '';
+}
+
+let workDetailCache = {};
+
+window.addEventListener('load', () => {
+  const modalImage = document.getElementById('modalImage');
+  if (modalImage) modalImage.loading = 'lazy';
+  callGAS("getAllWorkDetails", { siteNo: SITE_NO })
+  .then(list => {
+    list.forEach(w => {
+      workDetailCache[w.workId] = w;
+    });
+    console.log('work cache loaded:', Object.keys(workDetailCache).length);
+  });
+});
+
+
+window.addEventListener('load', () => {
+  updateNowDateTime();
+  setInterval(updateNowDateTime, 1000);
+
+  callGAS("getEventHeader", { siteNo: SITE_NO })
+  .then(data => {
+    document.getElementById('eventTitle').textContent = data.title || '';
+    document.getElementById('eventDesc').textContent = data.description || '';
+  });
+});
+
+
+
+document.getElementById('modalClose').onclick =
+document.getElementById('modalBack').onclick = () => {
+  document.getElementById('modal').classList.add('hidden');
+};
+
+// イラスト拡大（簡易）
+document.getElementById('modalImage').onclick = e => {
+  window.open(e.target.src, '_blank');
+};
+
+if (PAGE_TYPE !== 'com') {
+  callGAS("getButtonData", {
+  pageType: PAGE_TYPE,
+  siteNo: SITE_NO
+}).then(renderButtons);
+}
+
+  function updateNowDateTime() {
+  const now = new Date();
+
+  const date =
+    `${now.getMonth() + 1}月${now.getDate()}日`;
+
+  const time =
+    now.toTimeString().slice(0, 8); // HH:mm:ss
+
+  document.getElementById('nowDateTime').textContent =
+    `現在　${date}　時刻　${time}`;
+}
+
+ // 初回実行
+ updateNowDateTime();
+
+ // 1秒更新
+ setInterval(updateNowDateTime, 1000);
+
+let eventStart = null;
+let eventEnd = null;
+  callGAS("getEventHeader", { siteNo: SITE_NO })
+  .then(data => {
+    document.getElementById('eventTitle').textContent = data.title;
+    document.getElementById('eventDesc').textContent = data.description;
+  });
+
+
+
+//ボタンを描写
+
+if (PAGE_TYPE !== 'com') {
+  callGAS("getButtonData", {
+  pageType: PAGE_TYPE,
+  siteNo: SITE_NO
+  }).then(renderButtons);
+}
+
+function renderButtons(buttons) {
+  console.log('buttons:', buttons); // ←ここで確認
+  const area = document.getElementById('linkArea');
+  if (!area || !buttons || !buttons.length) return;
+
+  area.style.display = 'flex';
+  area.innerHTML = '';
+
+  buttons.forEach(btn => {
+    const a = document.createElement('a');
+    a.textContent = btn.name;
+    a.href = btn.url;
+    a.target = btn.target || '_blank';
+    a.rel = 'noopener';
+    a.className = 'action-button';
+    area.appendChild(a);
+  });
+}
+
+
+
+//ボタンを描写終
+
+console.log('PAGE_TYPE=', PAGE_TYPE);
+console.log('SITE_NO=', SITE_NO);
+
+
+  
+</script>
 
 </body>
 </html>
+
