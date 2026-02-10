@@ -13,6 +13,19 @@
   --led-green: #3cff6a;
 }
 
+#loadingScreen {
+  position: fixed;
+  inset: 0;
+  background: #fff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 1.2rem;
+  z-index: 20000;
+}
+
+
+
 /* =============================
    全体
 ============================= */
@@ -177,6 +190,8 @@ body {
 .time-wrapper {
   display: flex;
   align-items: center;
+  height: 2.2em;          /* ← outerと完全一致させる */
+  line-height: 2.2em;     /* ← baselineズレ防止 */
   gap: 4px;
 }
 
@@ -187,7 +202,11 @@ body {
 
 /* 所要時間（3桁想定） */
 .outer.duration {
-  width: 3.2ch;
+  width: 3.6ch;
+  height: 2.6em;          /* 明示 */
+  margin-top: 0;
+  margin-bottom: 0;
+  align-self: center;   /* ← flex内で明示 */
 }
 
 .colon,
@@ -195,6 +214,14 @@ body {
   font-weight: bold;
   color: #000;
 }
+
+.unit {
+  display: inline-flex;   /* ← inline をやめる */
+  align-items: center;    /* ← 縦中央固定 */
+  height: 2.2em;          /* ← outerと同じ */
+  line-height: 2.2em;
+}
+
 
 /* =============================
    作品名（完全1行制御）
@@ -392,6 +419,9 @@ body {
 }
 
 /* 非表示 */
+.hidden {
+  display: none !important;
+}
 .modal.hidden {
   display: none;
 }
@@ -403,7 +433,7 @@ body {
   width: 90%;
   max-width: 420px;
 
-  max-height: 85vh;
+  max-height: 92vh;
   display: flex;
   flex-direction: column;
 
@@ -413,9 +443,13 @@ body {
 .modal-body{
   flex: 1;                 /* ← ここ重要 */
   overflow-y: auto;
+  overscroll-behavior: contain;
   margin: 10px 0 12px;
   -webkit-overflow-scrolling: touch;
 }
+
+
+
 /* ===== 戻るボタン（下固定） ===== */
 .modal-back{
   width: 100%;
@@ -456,11 +490,51 @@ body {
   border: none;
   cursor: pointer;
 }
+
+.image-zoom-wrapper{
+  position: relative;
+}
+
+.zoom-close{
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 10;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0,0,0,0.65);
+  color: #fff;
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* 拡大していない時は非表示 */
+.zoom-close.hidden{
+  display: none;
+}
+
+/* モーダル画像 通常 */
 #modalImage {
   max-width: 100%;
   height: auto;
   margin-top: 10px;
   border-radius: 6px;
+  transition: transform 0.25s ease;
+  transform-origin: center center;
+  cursor: zoom-in;
+}
+
+/* 拡大状態 */
+#modalImage.zoomed {
+  transform: scale(2) translate(0, 0);
+  touch-action: none;
+  cursor: grab;
+}
+#modalImage.zoomed:active{
+  cursor: grabbing;
 }
 
 /*============================
@@ -511,6 +585,39 @@ body {
 }
 
 
+.badge {
+  display: inline-block;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: bold;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.badge-new {
+  background: #e60033;
+  color: #fff;
+}
+
+.badge-archive {
+  background: #666;
+  color: #fff;
+}
+
+.duration {
+  font-size: 14px;
+  color: #555;
+  margin-bottom: 8px;
+}
+
+#modalPdf {
+  width: 100%;
+  height: 60vh;
+  border: none;
+}
+
+
+
 
 
 
@@ -537,7 +644,8 @@ body {
       60px        /* 所要時間 */
       1fr;        /* 作品名 */
     gap: 4px;
-    align-items: center;
+    height: 2.2em;          /* ← これが決定打 */
+    align-items: stretch;
   }
 
   /* フォント微調整 */
@@ -641,6 +749,11 @@ body {
 </style>
 </head>
 <body>
+
+  <div id="loadingScreen">
+  読み込み中<span id="loadingDots"></span>
+</div>
+
 
 <!-- タイトル -->
 <div id="titleCookie" class="cookie">
@@ -805,17 +918,55 @@ body {
   </div>
 </div>
 
+<!-- モーダルについて-->
+
 <div id="modal" class="modal hidden">
   <div class="modal-content">
+
     <button id="modalClose">×</button>
+    <div class="modal-body">
+    <!-- 作品名 -->
     <h2 id="modalTitle"></h2>
-    <p id="modalDesc"></p>
-    <div id="modalCaution"></div>
-    <div id="modalNote"></div>
-    <img id="modalImage" />
-    <button id="modalBack">戻る</button>
+
+    <!-- ふりがな -->
+    <div id="modalRuby" style="font-size:0.9rem;color:#666;"></div>
+
+    <!-- カテゴリ（新作/過去作） -->
+    <div id="modalBadge" class="badge"></div>
+
+    <!-- 所要時間 -->
+    <div id="modalDuration" class="duration"></div>
+
+
+      <!-- 紹介文 -->
+      <p id="modalDesc"></p>
+
+      <!-- モーダル用備考（I列） -->
+      <div id="modalNote"
+           style="margin-top:10px;font-size:0.95rem;"></div>
+
+      <!-- 注意記号 -->
+      <div id="modalCaution"
+           style="margin-top:10px;font-size:0.9rem;color:#900;"></div>
+
+      <!-- 画像 -->
+      <!-- 画像操作ボタン -->
+      <div class="image-zoom-wrapper">
+      <img id="modalImage" />
+      <button id="imageZoomClose" class="zoom-close hidden">×</button>
+      </div>
+      <!-- SVG直接埋め込み用 -->
+      <div id="modalImageSvg" style="margin-top:10px;"></div>
+      <!-- PDF表示用 -->
+      <iframe id="modalPdf" class="hidden" loading="lazy"></iframe>
+      
+    </div>
+
+    <button id="modalBack" class="modal-back">戻る</button>
+
   </div>
 </div>
+
 
 <div id="buttonCookie" class="cookie">
 <!-- リンクエリア -->
@@ -823,11 +974,33 @@ body {
 </div>
 
   <script>
+    // ===== グローバル状態 =====
+    let worksReady = false;
+    let workDetailCache = {};
+
+
+
+
+
+    // ===== ページ読み込み =====
+
+    let dotCount = 0;
+  const dotTimer = setInterval(() => {
+  const dots = '.'.repeat(dotCount % 4);
+  document.getElementById('loadingDots').textContent = dots;
+  dotCount++;
+  }, 500);
+
+  function stopLoadingScreen() {
+  clearInterval(dotTimer);
+  const el = document.getElementById('loadingScreen');
+  if (el) el.remove();
+  }
 
   let PAGE_TYPE;
   let SITE_NO;
 
-  const API_URL = "https://script.google.com/macros/s/AKfycbz3TPmczoDQZH9_d9DmUSVaGQSP04es14yVHM5LLredY8qjp4aOnU-ybC6hQN2pTJrV/exec";
+  const API_URL = "https://script.google.com/macros/s/AKfycbxMBIkX5DfpqmbLGF_nLZb8_DnsYsc2nBEZtsFtK5wHCyidiQG8kp0mTJJiYU43eB5XsQ/exec";
   function callGAS(action, params = {}) {
 
   // ===== GAS環境 =====
@@ -851,11 +1024,24 @@ body {
 }
 
 
+  // GASテンプレート用
+  if (typeof <?= pageType ? 'true' : 'false' ?> !== "undefined") {
+
+  PAGE_TYPE = '<?= pageType ?>';
+  SITE_NO = <?= siteNo ?>;
+
+  } else {
+
   // GitHub Pages用
   const params = new URLSearchParams(window.location.search);
 
   PAGE_TYPE = params.get("page") || "index";
   SITE_NO = Number(params.get("n") || 1);
+  }
+
+
+
+
 
 
 // =============================
@@ -1592,122 +1778,301 @@ document.addEventListener('click', e => {
 
 
 /*タイムテーブル　終*/
-/*モーダルはじめ*/
+/* モーダルはじめ */
+
+/**
+ * 表示用にデータを整形
+ */
+function normalizeWorkData(data) {
+  if (!data) return null;
+  const imageUrl = data.image || '';
+
+  const imageType =
+    /\.pdf$/i.test(imageUrl)
+      ? 'pdf'
+      : imageUrl
+        ? 'image'
+        : null;
+
+  return {
+    ...data,
+
+    // 所要時間 → 約○○分
+    durationText:
+      data.duration
+        ? `所要時間：約${data.duration}分`
+        : '',
+
+    // 新作 / 過去作
+    badgeText:
+      data.category === '新作'
+        ? '新作'
+        : data.category === '過去作'
+          ? '過去作'
+          : '',
+
+    // 画像種別判定
+    imageType
+  };
+}
+
+
+/**
+ * モーダルを開く
+ */
+
 function openWorkModal(workId) {
   if (!workId) return;
 
-  document.body.style.overflow = 'hidden';
+  document.body.classList.add('modal-open');
   document.getElementById('modal').classList.remove('hidden');
 
-  // ① skeleton 表示
-  openModalSkeleton();
-
-  // ② キャッシュがあれば即描画
   if (workDetailCache[workId]) {
     showModal(workDetailCache[workId]);
     return;
   }
 
-  // ③ なければ GAS 取得
-  callGAS("getWorkDetail", { workId })
-  .then(res => {
-    if (!res) return;
-    workDetailCache[workId] = res;
-    showModal(res);
-  });
+  openModalSkeleton();
+
+  callGAS('getWorkDetail', { workId })
+    .then(res => {
+      if (!res) {
+        closeModal();
+        return;
+      }
+      workDetailCache[workId] = res;
+      showModal(res);
+    })
+    .catch(err => {
+      console.error(err);
+      closeModal();
+    });
 }
 
+
+
+
+/**
+ * モーダルを閉じる
+ */
 function closeModal() {
   document.getElementById('modal').classList.add('hidden');
-  document.body.classList.remove('modal-open'); // スクロール復活
+  document.body.classList.remove('modal-open');
 }
 
-document.getElementById('modalClose').onclick = closeModal;
-document.getElementById('modalBack').onclick = closeModal;
-
-
-
-
+/**
+ * skeleton 表示
+ */
 function openModalSkeleton() {
   document.getElementById('modalTitle').textContent = '読み込み中…';
+  document.getElementById('modalRuby').textContent = '';
+  document.getElementById('modalCategory').textContent = '';
   document.getElementById('modalDesc').textContent = '';
   document.getElementById('modalCaution').innerHTML = '';
   document.getElementById('modalNote').textContent = '';
-  document.getElementById('modalImage').src = '';
+  document.getElementById('modalDuration').textContent = '';
+  document.getElementById('modalBadge').textContent = '';
 
-  document.body.style.overflow = 'hidden';
-  document.getElementById('modal').classList.remove('hidden');
+  document.getElementById('modalImage').classList.add('hidden');
+  document.getElementById('modalPdf').classList.add('hidden');
+  document.getElementById('modalImageSvg').innerHTML = '';
 }
 
 
-
-
-
-  window.addEventListener('load', () => {
-  callGAS("logPageView", {
-  pageType: PAGE_TYPE,
-  siteNo: SITE_NO
-});
-
-  });
-
-
-
-function showModal(data) {
+/**
+ * モーダル内容描画
+ */
+function showModal(rawData) {
+  const data = normalizeWorkData(rawData);
+  const modalImage = document.getElementById('modalImage');
+  const zoomClose = document.getElementById('imageZoomClose');
+  const modalBody = document.querySelector('.modal-body');
+  console.log('image url =', data.image);
+  console.log('imageType =', data.imageType);
   if (!data) return;
 
-  document.getElementById('modalTitle').textContent = data.title;
-  document.getElementById('modalDesc').textContent = data.description || '';
+  // ===== テキスト =====
+  modalTitle.textContent = data.title || '';
+  modalRuby.textContent = data.ruby ? `（${data.ruby}）` : '';
+  modalDesc.textContent = data.description || '';
+  modalNote.textContent = data.notes || '';
+  modalDuration.textContent = data.durationText || '';
 
-  const cautionDiv = document.getElementById('modalCaution');
-  cautionDiv.innerHTML = '';
-  (data.cautions || []).forEach(c => {
+  // ===== バッジ =====
+  modalBadge.textContent = '';
+  modalBadge.className = 'badge';
+
+  if (data.badgeText) {
+    modalBadge.textContent = data.badgeText;
+    modalBadge.classList.add(
+      data.category === '新作' ? 'badge-new' : 'badge-archive'
+    );
+  }
+
+  // ===== 注意 =====
+  modalCaution.innerHTML = '';
+  (data.cautions || []).forEach(t => {
     const p = document.createElement('p');
-    p.textContent = c;
-    cautionDiv.appendChild(p);
+    p.textContent = t;
+    modalCaution.appendChild(p);
   });
 
-  document.getElementById('modalNote').textContent = data.notes || '';
-  document.getElementById('modalImage').src = data.image || '';
+  // ===== 画像 / PDF =====
+  modalImage.classList.add('hidden');
+  modalPdf.classList.add('hidden');
+  modalImageSvg.innerHTML = '';
+  modalImage.src = '';
+  modalPdf.src = '';
+
+  if (!data.imageType) return;
+
+  if (data.imageType === 'pdf') {
+    modalPdf.src = data.image;
+    modalPdf.classList.remove('hidden');
+  } else {
+    modalImage.src = data.image;
+    modalImage.classList.remove('hidden');
+  }
+    // ★ 拡大状態を必ずリセット
+    modalImage.classList.remove('zoomed');
+    zoomClose.classList.add('hidden');
+    modalBody.style.overflow = 'auto';
 }
 
-let workDetailCache = {};
 
+/* ===== 初期ロード処理 ===== */
 window.addEventListener('load', () => {
+
+  // モーダル閉じる
+  document.getElementById('modalClose').onclick = closeModal;
+  document.getElementById('modalBack').onclick = closeModal;
+
+  // 画像クリックで拡大
   const modalImage = document.getElementById('modalImage');
-  if (modalImage) modalImage.loading = 'lazy';
-  callGAS("getAllWorkDetails", { siteNo: SITE_NO })
-  .then(list => {
-    list.forEach(w => {
-      workDetailCache[w.workId] = w;
+  const zoomClose = document.getElementById('imageZoomClose');
+  const modalBody = document.querySelector('.modal-body');
+  if (modalImage) {
+    modalImage.loading = 'lazy';
+
+    modalImage.addEventListener('click', () => {
+    modalImage.classList.toggle('zoomed');
+    const isZoomed = modalImage.classList.contains('zoomed');
+    zoomClose.classList.toggle('hidden', !isZoomed);
+
+    // 拡大中は背景スクロール止める（任意）
+    modalBody.style.overflow = isZoomed ? 'hidden' : 'auto';
     });
-    console.log('work cache loaded:', Object.keys(workDetailCache).length);
+    zoomClose.addEventListener('click', (e) => {
+   e.stopPropagation(); // 画像クリックと干渉させない
+
+    modalImage.classList.remove('zoomed');
+    zoomClose.classList.add('hidden');
+    modalBody.style.overflow = 'auto';
   });
+  }
+
+  // ===== 作品データ事前ロード（最重要）=====
+
+  callGAS('getAllWorkDetails')
+.then(list => {
+  if (!Array.isArray(list)) {
+    console.error('getAllWorkDetails failed');
+    return;
+  }
+
+  list.forEach(w => {
+    workDetailCache[w.workId] = w;
+  });
+
+  worksReady = true;
+
+  // ★ 作品詳細が本当に準備できた後で loading を消す
+  stopLoadingScreen();
+
+  console.log('works preloaded:', Object.keys(workDetailCache).length);
+})
+.catch(err => {
+  console.error('work preload error', err);
+  // 最低限 UI は解除
+  stopLoadingScreen();
+});
+
+//===== 画像拡大後の動き =====
+
+let isDragging = false;
+let startX = 0;
+let startY = 0;
+let currentX = 0;
+let currentY = 0;
+
+modalImage.addEventListener('pointerdown', e => {
+  if (!modalImage.classList.contains('zoomed')) return;
+
+  isDragging = true;
+  startX = e.clientX - currentX;
+  startY = e.clientY - currentY;
+
+  modalImage.setPointerCapture(e.pointerId);
+});
+
+modalImage.addEventListener('pointermove', e => {
+  if (!isDragging) return;
+
+  currentX = e.clientX - startX;
+  currentY = e.clientY - startY;
+
+  modalImage.style.transform =
+    `scale(2) translate(${currentX}px, ${currentY}px)`;
+});
+
+modalImage.addEventListener('pointerup', () => {
+  isDragging = false;
+});
+modalImage.addEventListener('pointercancel', () => {
+  isDragging = false;
+});
+
+function resetImageTransform(){
+  currentX = 0;
+  currentY = 0;
+  modalImage.style.transform = 'scale(1)';
+}
+
+zoomClose.addEventListener('click', () => {
+  resetImageTransform();
+});
+
+modalImage.addEventListener('click', () => {
+  if (!modalImage.classList.contains('zoomed')) return;
+  // 拡大解除時
+  resetImageTransform();
 });
 
 
-window.addEventListener('load', () => {
+
+
+//=====モーダル終了=====
+
+
+
+  // ヘッダ情報
+  callGAS('getEventHeader', { siteNo: SITE_NO })
+    .then(data => {
+      if (!data) return;
+      document.getElementById('eventTitle').textContent = data.title || '';
+      document.getElementById('eventDesc').textContent = data.description || '';
+    });
+
+  // ログ
+  callGAS('logPageView', {
+    pageType: PAGE_TYPE,
+    siteNo: SITE_NO
+  });
+
+  // 時計
   updateNowDateTime();
   setInterval(updateNowDateTime, 1000);
-
-  callGAS("getEventHeader", { siteNo: SITE_NO })
-  .then(data => {
-    document.getElementById('eventTitle').textContent = data.title || '';
-    document.getElementById('eventDesc').textContent = data.description || '';
-  });
 });
-
-
-
-document.getElementById('modalClose').onclick =
-document.getElementById('modalBack').onclick = () => {
-  document.getElementById('modal').classList.add('hidden');
-};
-
-// イラスト拡大（簡易）
-document.getElementById('modalImage').onclick = e => {
-  window.open(e.target.src, '_blank');
-};
 
 if (PAGE_TYPE !== 'com') {
   callGAS("getButtonData", {
