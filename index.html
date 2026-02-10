@@ -750,6 +750,13 @@ body {
 </style>
 </head>
 <body>
+  <script id="gas-env" type="application/json">
+{
+  "pageType": "<?= pageType ?>",
+  "siteNo": <?= siteNo ?>
+}
+</script>
+
 
   <div id="loadingScreen">
   読み込み中<span id="loadingDots"></span>
@@ -1001,7 +1008,7 @@ body {
   let PAGE_TYPE;
   let SITE_NO;
 
-  const API_URL = "https://script.google.com/macros/s/AKfycbyf5lotXLpp7HooT_Iu80pp6T7QvkQMR9VnqJEuiWGHuy9zR0Icb2WSbh1BESqIvzRx/exec";
+  const API_URL = "https://script.google.com/macros/s/AKfycbxxpzlMuaf743UFqJFN-SSCiOLkTRERHZpLBqQ0bkR0THFUMlMp14NX_Z5S3soZThhf-g/exec";
   function callGAS(action, params = {}) {
 
   // ===== GAS環境 =====
@@ -1024,17 +1031,26 @@ body {
   return fetch(url).then(r => r.json());
 }
 
+// ===== GAS / GitHub 共通判定 =====
+const gasEnvEl = document.getElementById('gas-env');
 
-if (typeof google !== 'undefined' && google.script && google.script.run) {
-  // ===== GAS実行環境 =====
-  PAGE_TYPE = '<?= pageType ?>';
-  SITE_NO   = <?= siteNo ?>;
-} else {
-  // ===== GitHub Pages =====
+if (gasEnvEl) {
+  try {
+    const env = JSON.parse(gasEnvEl.textContent);
+    PAGE_TYPE = env.pageType;
+    SITE_NO   = Number(env.siteNo);
+  } catch (e) {
+    console.warn('gas-env parse failed');
+  }
+}
+
+// GitHub Pages fallback
+if (!PAGE_TYPE || !SITE_NO) {
   const params = new URLSearchParams(window.location.search);
   PAGE_TYPE = params.get('page') || 'index';
   SITE_NO   = Number(params.get('n') || 1);
 }
+
 
 
 
@@ -2145,4 +2161,3 @@ console.log('SITE_NO=', SITE_NO);
 
 </body>
 </html>
-
