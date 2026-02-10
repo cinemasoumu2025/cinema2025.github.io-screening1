@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-   <base target="_top">
+  <base target="_top">
 <style>
 /* =============================
    カラートークン
@@ -1001,7 +1001,7 @@ body {
   let PAGE_TYPE;
   let SITE_NO;
 
-  const API_URL = "https://script.google.com/macros/s/AKfycbxMBIkX5DfpqmbLGF_nLZb8_DnsYsc2nBEZtsFtK5wHCyidiQG8kp0mTJJiYU43eB5XsQ/exec";
+  const API_URL = "https://script.google.com/macros/s/AKfycbyf5lotXLpp7HooT_Iu80pp6T7QvkQMR9VnqJEuiWGHuy9zR0Icb2WSbh1BESqIvzRx/exec";
   function callGAS(action, params = {}) {
 
   // ===== GAS環境 =====
@@ -1025,23 +1025,16 @@ body {
 }
 
 
-  // GASテンプレート用
-  if (typeof <?= pageType ? 'true' : 'false' ?> !== "undefined") {
-
+if (typeof google !== 'undefined' && google.script && google.script.run) {
+  // ===== GAS実行環境 =====
   PAGE_TYPE = '<?= pageType ?>';
-  SITE_NO = <?= siteNo ?>;
-
-  } else {
-
-  // GitHub Pages用
+  SITE_NO   = <?= siteNo ?>;
+} else {
+  // ===== GitHub Pages =====
   const params = new URLSearchParams(window.location.search);
-
-  PAGE_TYPE = params.get("page") || "index";
-  SITE_NO = Number(params.get("n") || 1);
-  }
-
-
-
+  PAGE_TYPE = params.get('page') || 'index';
+  SITE_NO   = Number(params.get('n') || 1);
+}
 
 
 
