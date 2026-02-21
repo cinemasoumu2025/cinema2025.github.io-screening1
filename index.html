@@ -518,25 +518,35 @@ body {
 }
 
 /* モーダル画像 通常 */
+/* 通常状態 */
 #modalImage {
   max-width: 100%;
   height: auto;
   margin-top: 10px;
   border-radius: 6px;
-  transition: transform 0.25s ease;
-  transform-origin: center center;
   cursor: zoom-in;
+  transition: transform 0.3s ease;
 }
 
-/* 拡大状態 */
+/* ===== 拡大状態 ===== */
 #modalImage.zoomed {
-  transform: scale(2) translate(0, 0);
-  touch-action: none;
+  position: fixed;          /* ← 画面基準にする（最重要） */
+  top: 50%;
+  left: 50%;
+  transform:
+    translate(-50%, -50%)   /* ← 画面中央へ */
+    scale(2);               /* ← 拡大率 */
+  max-width: none;          /* ← 枠制限解除 */
+  max-height: none;
+  z-index: 20000;           /* ← モーダルより前面 */
   cursor: grab;
 }
-#modalImage.zoomed:active{
+
+/* 掴み中 */
+#modalImage.zoomed:active {
   cursor: grabbing;
 }
+
 
 /*============================
 リンクエリア
@@ -1901,6 +1911,12 @@ function showModal(rawData) {
   console.log('imageType =', data.imageType);
   if (!data) return;
 
+  
+  /* ★ 拡大状態を必ず初期化 */
+  modalImage.classList.remove('zoomed');
+  zoomClose.classList.add('hidden');
+  modalBody.style.overflow = 'auto';
+
   // ===== テキスト =====
   modalTitle.textContent = data.title || '';
   modalRuby.textContent = data.ruby ? `（${data.ruby}）` : '';
@@ -1951,6 +1967,9 @@ function showModal(rawData) {
 
 
 /* ===== 初期ロード処理 ===== */
+// ===== 画像ズーム状態 =====
+let isZoomed = false;
+
 window.addEventListener('load', () => {
 
   // モーダル閉じる
@@ -1964,20 +1983,24 @@ window.addEventListener('load', () => {
   if (modalImage) {
     modalImage.loading = 'lazy';
 
-    modalImage.addEventListener('click', () => {
-    modalImage.classList.toggle('zoomed');
-    const isZoomed = modalImage.classList.contains('zoomed');
-    zoomClose.classList.toggle('hidden', !isZoomed);
+  modalImage.addEventListener('click', () => {
+  isZoomed = !isZoomed;
 
-    // 拡大中は背景スクロール止める（任意）
-    modalBody.style.overflow = isZoomed ? 'hidden' : 'auto';
-    });
-    zoomClose.addEventListener('click', (e) => {
-   e.stopPropagation(); // 画像クリックと干渉させない
+  modalImage.classList.toggle('zoomed', isZoomed);
+  zoomClose.classList.toggle('hidden', !isZoomed);
 
-    modalImage.classList.remove('zoomed');
-    zoomClose.classList.add('hidden');
-    modalBody.style.overflow = 'auto';
+  /* 拡大中はモーダル内部のスクロールを止める */
+  modalBody.style.overflow = isZoomed ? 'hidden' : 'auto';
+  });
+
+    /* ×ボタンで確実に解除 */
+  zoomClose.addEventListener('click', (e) => {
+  e.stopPropagation(); // 画像クリックと干渉防止
+
+  isZoomed = false;
+  modalImage.classList.remove('zoomed');
+  zoomClose.classList.add('hidden');
+  modalBody.style.overflow = 'auto';
   });
   }
 
@@ -2009,54 +2032,73 @@ window.addEventListener('load', () => {
 
 //===== 画像拡大後の動き =====
 
+// ===== 画像ズーム状態 =====
+let isZoomed = false;
 let isDragging = false;
 let startX = 0;
 let startY = 0;
 let currentX = 0;
 let currentY = 0;
 
-modalImage.addEventListener('pointerdown', e => {
-  if (!modalImage.classList.contains('zoomed')) return;
+window.addEventListener('load', () => {
+  const modalImage = document.getElementById('modalImage');
+  const zoomClose  = document.getElementById('imageZoomClose');
+  const modalBody  = document.querySelector('.modal-body');
 
-  isDragging = true;
-  startX = e.clientX - currentX;
-  startY = e.clientY - currentY;
+  if (!modalImage) return;
 
-  modalImage.setPointerCapture(e.pointerId);
+  // クリックで拡大
+  modalImage.addEventListener('click', () => {
+    isZoomed = !isZoomed;
+
+    modalImage.classList.toggle('zoomed', isZoomed);
+    zoomClose.classList.toggle('hidden', !isZoomed);
+    modalBody.style.overflow = isZoomed ? 'hidden' : 'auto';
+
+    if (!isZoomed) resetImageTransform();
+  });
+
+  // ×で閉じる
+  zoomClose.addEventListener('click', e => {
+    e.stopPropagation();
+    isZoomed = false;
+    modalImage.classList.remove('zoomed');
+    zoomClose.classList.add('hidden');
+    modalBody.style.overflow = 'auto';
+    resetImageTransform();
+  });
+
+  // ===== ドラッグ =====
+  modalImage.addEventListener('pointerdown', e => {
+    if (!modalImage.classList.contains('zoomed')) return;
+
+    isDragging = true;
+    startX = e.clientX - currentX;
+    startY = e.clientY - currentY;
+    modalImage.setPointerCapture(e.pointerId);
+  });
+
+  modalImage.addEventListener('pointermove', e => {
+    if (!isDragging) return;
+
+    currentX = e.clientX - startX;
+    currentY = e.clientY - startY;
+
+    modalImage.style.transform =
+      `translate(-50%, -50%) scale(2) translate(${currentX}px, ${currentY}px)`;
+  });
+
+  modalImage.addEventListener('pointerup', () => isDragging = false);
+  modalImage.addEventListener('pointercancel', () => isDragging = false);
+
+  function resetImageTransform() {
+    currentX = 0;
+    currentY = 0;
+    modalImage.style.transform =
+      'translate(-50%, -50%) scale(2)';
+  }
 });
 
-modalImage.addEventListener('pointermove', e => {
-  if (!isDragging) return;
-
-  currentX = e.clientX - startX;
-  currentY = e.clientY - startY;
-
-  modalImage.style.transform =
-    `scale(2) translate(${currentX}px, ${currentY}px)`;
-});
-
-modalImage.addEventListener('pointerup', () => {
-  isDragging = false;
-});
-modalImage.addEventListener('pointercancel', () => {
-  isDragging = false;
-});
-
-function resetImageTransform(){
-  currentX = 0;
-  currentY = 0;
-  modalImage.style.transform = 'scale(1)';
-}
-
-zoomClose.addEventListener('click', () => {
-  resetImageTransform();
-});
-
-modalImage.addEventListener('click', () => {
-  if (!modalImage.classList.contains('zoomed')) return;
-  // 拡大解除時
-  resetImageTransform();
-});
 
 
 
