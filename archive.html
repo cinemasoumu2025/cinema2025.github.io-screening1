@@ -490,6 +490,13 @@ async function callGAS(action){
    初期ロード
 ============================= */
 window.addEventListener("load", async ()=>{
+
+
+  // ▼▼▼ これを追加 ▼▼▼
+  callGAS("logPageView", {
+    pageType: "archive",
+    siteNo: 1
+  });
   showLoading();
   allWorks = await callGAS("getAllOldWorkDetails");
   hideLoading();
