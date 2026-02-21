@@ -480,7 +480,7 @@ updateClock();
    GAS（初回のみ）
 ============================= */
 async function callGAS(action){
-  const url = "https://script.google.com/macros/s/AKfycbxD6Oc3_TRWEuwmJ2x6p9SwzfWfGxWYE-5RAaVGvP528Fz5xhGy2x2IZtR6HvqfWj0t9w/exec";
+  const url = "https://script.google.com/macros/s/AKfycbxUFw-429hMxKWpLbpIUorTAI3xCurSYnYezDjk1CbM43EZubgtYKif2PhhrbJwIn7myQ/exec";
   const query = new URLSearchParams({api:"true",action});
   const res = await fetch(url+"?"+query);
   return await res.json();
