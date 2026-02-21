@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<base target="_top">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+
+:root{
+  --black:#0f0f12;
+  --dark:#1a1a1f;
+  --gold:#c6a85a;
+  --gold-light:#e7d7a3;
+  --bg:#f2f2f2;
+}
+
+body{
+  margin:0;
+  font-family:"Hiragino Mincho ProN","Yu Mincho",serif;
+  background:var(--bg);
+  color:#222;
+}
+
+/* ===== ヘッダー ===== */
+.header{
+  background:linear-gradient(135deg,#0f0f12,#1a1a1f);
+  color:white;
+  padding:20px 30px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  letter-spacing:1px;
+}
+
+.header h1{
+  margin:0;
+  font-weight:500;
+  font-size:20px;
+}
+
+#clock{
+  font-size:14px;
+  color:var(--gold-light);
+}
+
+/* ===== 検索エリア ===== */
+.search-area{
+  background:white;
+  padding:25px;
+  margin:20px;
+  border-radius:12px;
+  box-shadow:0 10px 25px rgba(0,0,0,0.08);
+}
+
+.section-divider{
+  margin:20px 0;
+  border-top:1px solid #ddd;
+}
+
+.search-area input,
+.search-area select{
+  padding:8px 10px;
+  border:1px solid #ddd;
+  border-radius:6px;
+  margin:4px;
+  font-family:inherit;
+}
+
+/* ===== ボタン共通 ===== */
+.btn{
+  padding:10px 18px;
+  border:none;
+  border-radius:30px;
+  cursor:pointer;
+  font-family:inherit;
+  letter-spacing:1px;
+  transition:all .15s ease;
+  box-shadow:0 6px 14px rgba(0,0,0,0.25);
+}
+
+.btn-primary{
+  background:linear-gradient(135deg,var(--gold),var(--gold-light));
+  color:black;
+}
+
+.btn-primary:hover{
+  transform:translateY(-2px);
+  box-shadow:0 8px 18px rgba(0,0,0,0.2);
+}
+
+.btn:active{
+  transform:translateY(3px);
+  box-shadow:0 2px 6px rgba(0,0,0,0.3);
+}
+
+.btn-dark{
+  background:linear-gradient(145deg,#2a2a30,#111);
+  color:white;
+}
+
+.btn-dark:hover{
+  transform:translateY(-2px);
+  box-shadow:0 10px 20px rgba(0,0,0,0.35);
+}
+
+.btn-disabled{
+  opacity:0.4;
+  pointer-events:none;
+}
+
+/* ===== 検索中 ===== */
+
+.loading-overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(255,255,255,0.7);
+  backdrop-filter:blur(3px);
+  display:none;
+  justify-content:center;
+  align-items:center;
+  z-index:3000;
+}
+
+.loading-overlay.active{
+  display:flex;
+}
+
+.loader{
+  display:flex;
+  align-items:center;
+  gap:15px;
+  font-size:18px;
+  letter-spacing:2px;
+}
+
+.dot{
+  width:14px;
+  height:14px;
+  background:var(--gold);
+  border-radius:50%;
+  animation:spin 1s linear infinite;
+}
+
+@keyframes spin{
+  from{ transform:rotate(0deg) translateX(20px) rotate(0deg);}
+  to{ transform:rotate(360deg) translateX(20px) rotate(-360deg);}
+}
+
+
+
+/* ===== カード ===== */
+.card{
+  background:white;
+  margin:20px;
+  padding:20px;
+  border-radius:12px;
+  box-shadow:0 8px 20px rgba(0,0,0,0.08);
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+/* ===== ページャー ===== */
+.pager{
+  text-align:center;
+  margin:30px 0;
+  font-size:14px;
+}
+
+/* ===== モーダル ===== */
+.modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.85);
+  display:none;
+  justify-content:center;
+  align-items:center;
+  z-index:1000;
+}
+
+.modal.active{
+  display:flex;
+}
+
+.modal-content{
+  background:white;
+  width:90%;
+  max-width:1000px;
+  max-height:90%;
+  overflow:auto;
+  border-radius:14px;
+  padding:30px;
+}
+
+.modal-footer{
+  margin-top:30px;
+  text-align:center;
+}
+
+.main-image{
+  width:100%;
+  max-height:450px;
+  object-fit:contain;
+  margin-top:10px;
+}
+
+.thumbs{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-top:10px;
+}
+
+.thumbs img{
+  width:100px;
+  cursor:pointer;
+  border-radius:6px;
+}
+
+.lightbox{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.9);
+  display:none;
+  justify-content:center;
+  align-items:center;
+  z-index:2000;
+}
+
+.lightbox img{
+  max-width:90%;
+  max-height:90%;
+}
+
+.close-btn{
+  position:absolute;
+  top:25px;
+  right:35px;
+  font-size:32px;
+  color:white;
+  cursor:pointer;
+  opacity:0.7;
+  transition:all .2s ease;
+  font-weight:300;
+  letter-spacing:2px;
+}
+
+.close-btn:hover{
+  opacity:1;
+  transform:scale(1.2);
+}
+
+.no-image{
+  height:300px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:#222;
+  color:#999;
+  font-size:20px;
+  border-radius:8px;
+}
+
+.no-cm{
+  margin-top:15px;
+  color:#888;
+}
+
+/* ========================================
+   タブレット（iPad）
+======================================== */
+@media (max-width:1024px){
+
+  .search-area{
+    margin:15px;
+    padding:20px;
+  }
+
+  .card{
+    flex-direction:column;
+    align-items:flex-start;
+    gap:15px;
+  }
+
+  .modal-content{
+    width:95%;
+    padding:25px;
+  }
+
+  .main-image{
+    max-height:350px;
+  }
+
+  .thumbs img{
+    width:80px;
+  }
+
+}
+
+
+/* ========================================
+   スマホ
+======================================== */
+@media (max-width:767px){
+
+  body{
+    font-size:14px;
+  }
+
+  .header{
+    flex-direction:column;
+    align-items:flex-start;
+    gap:8px;
+    padding:15px 20px;
+  }
+
+  .header h1{
+    font-size:16px;
+  }
+
+  #clock{
+    font-size:12px;
+  }
+
+  .search-area{
+    margin:10px;
+    padding:15px;
+  }
+
+  .search-area input,
+  .search-area select{
+    width:100%;
+    box-sizing:border-box;
+    margin:5px 0;
+  }
+
+  .btn{
+    width:100%;
+    margin-top:10px;
+  }
+
+  .card{
+    flex-direction:column;
+    align-items:flex-start;
+    gap:10px;
+    margin:12px;
+    padding:15px;
+  }
+
+  .modal-content{
+    width:95%;
+    max-height:95%;
+    padding:20px;
+  }
+
+  .main-image{
+    max-height:250px;
+  }
+
+  .thumbs{
+    gap:6px;
+  }
+
+  .thumbs img{
+    width:60px;
+  }
+
+  .close-btn{
+    top:15px;
+    right:20px;
+    font-size:26px;
+  }
+
+  .no-image{
+    height:200px;
+    font-size:16px;
+  }
+
+}
+
+
+
+</style>
+</head>
+
+<body>
+<div id="loadingOverlay" class="loading-overlay">
+  <div class="loader">
+    <div class="dot"></div>
+    <span>検索中</span>
+  </div>
+</div>
+
+
+
+
+<div class="header">
+  <h1>過去作品　資料室</h1>
+  <div id="clock"></div>
+</div>
+
+<div class="search-area">
+
+  <!-- 全表示 -->
+  <button class="btn btn-dark" onclick="loadAll()">全表示（すべてのデータ）</button>
+
+  <div class="section-divider"></div>
+
+  <h3>詳しい検索</h3>
+
+  制作年
+  <input type="number" id="yearFrom" placeholder="開始">
+  ～
+  <input type="number" id="yearTo" placeholder="終了">
+
+  <label><input type="checkbox" id="sortAsc">昇順</label>
+
+  <br><br>
+
+  キーワード
+  <input type="text" id="keyword">
+
+  表示件数
+  <select id="limit">
+    <option>5</option>
+    <option selected>10</option>
+    <option>20</option>
+    <option>50</option>
+    <option>100</option>
+  </select>
+
+  <button class="btn btn-primary" onclick="searchOld()">検索</button>
+
+</div>
+
+<div id="pagerTop" class="pager"></div>
+
+<div id="list"></div>
+
+<div id="pagerBottom" class="pager"></div>
+
+<!-- モーダル -->
+<div id="modal" class="modal">
+  <div class="modal-content">
+    <div id="modalBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="closeModal()">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- ライトボックス -->
+<div id="lightbox" class="lightbox">
+  <div class="close-btn" onclick="closeLight()">☒</div>
+  <img id="lightImg">
+</div>
+
+<script>
+
+let allWorks = {};
+let filteredWorks = [];
+let cacheDetails = {};
+let currentPage = 1;
+let totalCount = 0;
+
+/* =============================
+   時計
+============================= */
+function updateClock(){
+  const now = new Date();
+  document.getElementById("clock").innerText =
+   `現在 ${now.getMonth()+1}月${now.getDate()}日 ${now.getHours()}:${now.getMinutes().toString().padStart(2,"0")}`;
+}
+setInterval(updateClock,1000);
+updateClock();
+
+/* =============================
+   GAS（初回のみ）
+============================= */
+async function callGAS(action){
+  const url = "https://script.google.com/macros/s/AKfycbypKNG1VTh8QPyr6D7njWfkdalgqR7RwItjQ3LsQ1oK7UOuVLoqpPam81ZioCTb7RNX7w/exec?page=archive";
+  const query = new URLSearchParams({api:"true",action});
+  const res = await fetch(url+"?"+query);
+  return await res.json();
+}
+
+/* =============================
+   初期ロード
+============================= */
+window.addEventListener("load", async ()=>{
+  showLoading();
+  allWorks = await callGAS("getAllOldWorkDetails");
+  hideLoading();
+  loadAll();
+});
+
+/* =============================
+   全表示
+============================= */
+function loadAll(){
+  yearFrom.value="";
+  yearTo.value="";
+  keyword.value="";
+  searchOld(1);
+}
+
+/* =============================
+   高速検索（JS内）
+============================= */
+function searchOld(page=1){
+
+  showLoading();
+  currentPage = page;
+
+  const yFrom = yearFrom.value;
+  const yTo = yearTo.value;
+  const key = keyword.value.trim().toLowerCase();
+  const asc = sortAsc.checked;
+  const perPage = Number(limit.value);
+
+  let listData = Object.values(allWorks);
+
+  /* 年フィルタ */
+  if(yFrom){
+    listData = listData.filter(w => Number(w.year) >= Number(yFrom));
+  }
+  if(yTo){
+    listData = listData.filter(w => Number(w.year) <= Number(yTo));
+  }
+
+  /* キーワード */
+  if(key){
+    listData = listData.filter(w =>
+      (w.title || "").toLowerCase().includes(key) ||
+      (w.description || "").toLowerCase().includes(key) ||
+      (w.genre || "").toLowerCase().includes(key)
+    );
+  }
+
+  /* ソート */
+  listData.sort((a,b)=>{
+    return asc
+      ? Number(a.year) - Number(b.year)
+      : Number(b.year) - Number(a.year);
+  });
+
+  totalCount = listData.length;
+  filteredWorks = listData;
+
+  renderPage(perPage);
+
+  hideLoading();
+}
+
+/* =============================
+   ページ描画
+============================= */
+function renderPage(perPage){
+
+  const start = (currentPage - 1) * perPage;
+  const end = start + perPage;
+  const pageItems = filteredWorks.slice(start,end);
+
+  list.innerHTML="";
+
+  pageItems.forEach(w=>{
+    list.innerHTML+=`
+      <div class="card">
+        <div>
+          <div style="font-size:18px; font-weight:600;">
+            ${w.title}
+          </div>
+          <div style="font-size:13px; color:#888;">
+            ${w.year}年
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="showDetail('${w.workId}')">
+          詳しく見る
+        </button>
+      </div>
+    `;
+  });
+
+  renderPager(perPage,start+1,Math.min(end,totalCount));
+}
+
+/* =============================
+   ページャー
+============================= */
+function renderPager(perPage,start,end){
+
+  const prevDisabled = currentPage<=1;
+  const nextDisabled = end>=totalCount;
+
+  const html=`
+    <button class="btn btn-dark ${prevDisabled?'btn-disabled':''}"
+      onclick="searchOld(${currentPage-1})">◀前へ</button>
+
+    検索結果 ${totalCount}件中
+    ${start}件～${end}件目表示
+
+    <button class="btn btn-dark ${nextDisabled?'btn-disabled':''}"
+      onclick="searchOld(${currentPage+1})">次へ▶</button>
+  `;
+
+  pagerTop.innerHTML=html;
+  pagerBottom.innerHTML=html;
+}
+
+/* =============================
+   詳細（ローカル表示）
+============================= */
+function showDetail(id){
+
+  const d = allWorks[id];
+  if(!d){ alert("データなし"); return; }
+
+  const subImages = Array.isArray(d.subImages) ? d.subImages : [];
+  let images = [d.mainImage, ...subImages].filter(Boolean);
+  let currentImg = 0;
+
+  function renderImage(){
+
+    if(images.length===0){
+      return `<div class="no-image">No Image</div>`;
+    }
+
+    return `
+      <img src="${images[currentImg]}" loading="lazy"
+        class="main-image"
+        onclick="openLight('${images[currentImg]}')">
+
+      <div class="thumbs">
+        ${images.map((img,i)=>
+          `<img src="${img}" loading="lazy"
+           onclick="setImg(${i})">`
+        ).join("")}
+      </div>
+    `;
+  }
+
+  window.setImg=(i)=>{
+    currentImg=i;
+    document.getElementById("imgArea").innerHTML=renderImage();
+  };
+
+  window.openLight=(src)=>{
+    lightImg.src=src;
+    lightbox.style.display="flex";
+  };
+
+  let cmHtml = d.cmUrl
+    ? `<div><a href="${d.cmUrl}" target="_blank">▶ CMを見る</a></div>`
+    : `<div class="no-cm">CMなし</div>`;
+
+  modalBody.innerHTML=`
+    <h2>${d.title || "タイトル未設定"} ｜約${d.duration || "-"}分</h2>
+    <p>${d.year || "-"}年 ${d.eventName || ""}</p>
+    <p>${d.description || ""}</p>
+    <div id="imgArea">${renderImage()}</div>
+    ${cmHtml}
+  `;
+
+  modal.classList.add("active");
+}
+
+/* =============================
+   共通UI
+============================= */
+function closeModal(){
+  modal.classList.remove("active");
+}
+
+function showLoading(){
+  loadingOverlay.classList.add("active");
+}
+function hideLoading(){
+  loadingOverlay.classList.remove("active");
+}
+
+function closeLight(){
+  lightbox.style.display="none";
+}
+
+window.addEventListener("keydown",e=>{
+  if(e.key==="Escape"){
+    closeModal();
+    closeLight();
+  }
+});
+
+</script>
+
+</body>
+</html>
