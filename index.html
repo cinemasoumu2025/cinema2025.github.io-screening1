@@ -1018,7 +1018,7 @@ body {
   let PAGE_TYPE;
   let SITE_NO;
 
-  const API_URL = "https://script.google.com/macros/s/AKfycbxxpzlMuaf743UFqJFN-SSCiOLkTRERHZpLBqQ0bkR0THFUMlMp14NX_Z5S3soZThhf-g/exec";
+  const API_URL = "https://script.google.com/macros/s/AKfycbxD6Oc3_TRWEuwmJ2x6p9SwzfWfGxWYE-5RAaVGvP528Fz5xhGy2x2IZtR6HvqfWj0t9w/exec";
   function callGAS(action, params = {}) {
 
   // ===== GAS環境 =====
@@ -1967,42 +1967,6 @@ function showModal(rawData) {
 
 
 /* ===== 初期ロード処理 ===== */
-// ===== 画像ズーム状態 =====
-let isZoomed = false;
-
-window.addEventListener('load', () => {
-
-  // モーダル閉じる
-  document.getElementById('modalClose').onclick = closeModal;
-  document.getElementById('modalBack').onclick = closeModal;
-
-  // 画像クリックで拡大
-  const modalImage = document.getElementById('modalImage');
-  const zoomClose = document.getElementById('imageZoomClose');
-  const modalBody = document.querySelector('.modal-body');
-  if (modalImage) {
-    modalImage.loading = 'lazy';
-
-  modalImage.addEventListener('click', () => {
-  isZoomed = !isZoomed;
-
-  modalImage.classList.toggle('zoomed', isZoomed);
-  zoomClose.classList.toggle('hidden', !isZoomed);
-
-  /* 拡大中はモーダル内部のスクロールを止める */
-  modalBody.style.overflow = isZoomed ? 'hidden' : 'auto';
-  });
-
-    /* ×ボタンで確実に解除 */
-  zoomClose.addEventListener('click', (e) => {
-  e.stopPropagation(); // 画像クリックと干渉防止
-
-  isZoomed = false;
-  modalImage.classList.remove('zoomed');
-  zoomClose.classList.add('hidden');
-  modalBody.style.overflow = 'auto';
-  });
-  }
 
   // ===== 作品データ事前ロード（最重要）=====
 
@@ -2033,6 +1997,7 @@ window.addEventListener('load', () => {
 //===== 画像拡大後の動き =====
 
 // ===== 画像ズーム状態 =====
+// ===== 画像ズーム完全版 =====
 let isZoomed = false;
 let isDragging = false;
 let startX = 0;
@@ -2040,14 +2005,12 @@ let startY = 0;
 let currentX = 0;
 let currentY = 0;
 
-window.addEventListener('load', () => {
-  const modalImage = document.getElementById('modalImage');
-  const zoomClose  = document.getElementById('imageZoomClose');
-  const modalBody  = document.querySelector('.modal-body');
+const modalImage = document.getElementById('modalImage');
+const zoomClose  = document.getElementById('imageZoomClose');
+const modalBody  = document.querySelector('.modal-body');
 
-  if (!modalImage) return;
+if (modalImage) {
 
-  // クリックで拡大
   modalImage.addEventListener('click', () => {
     isZoomed = !isZoomed;
 
@@ -2058,7 +2021,6 @@ window.addEventListener('load', () => {
     if (!isZoomed) resetImageTransform();
   });
 
-  // ×で閉じる
   zoomClose.addEventListener('click', e => {
     e.stopPropagation();
     isZoomed = false;
@@ -2068,9 +2030,8 @@ window.addEventListener('load', () => {
     resetImageTransform();
   });
 
-  // ===== ドラッグ =====
   modalImage.addEventListener('pointerdown', e => {
-    if (!modalImage.classList.contains('zoomed')) return;
+    if (!isZoomed) return;
 
     isDragging = true;
     startX = e.clientX - currentX;
@@ -2097,7 +2058,7 @@ window.addEventListener('load', () => {
     modalImage.style.transform =
       'translate(-50%, -50%) scale(2)';
   }
-});
+}
 
 
 
