@@ -1018,7 +1018,7 @@ body {
   let PAGE_TYPE;
   let SITE_NO;
 
-  const API_URL = "https://script.google.com/macros/s/AKfycbxD6Oc3_TRWEuwmJ2x6p9SwzfWfGxWYE-5RAaVGvP528Fz5xhGy2x2IZtR6HvqfWj0t9w/exec";
+  const API_URL = "https://script.google.com/macros/s/AKfycbybeD4mEDqC-HB57uT3DcKusuaVUQthgatIBF_BLfOhIaNSKOXivN5XUH_C_4b0P-H36Q/exec";
   function callGAS(action, params = {}) {
 
   // ===== GAS環境 =====
@@ -1965,6 +1965,8 @@ function showModal(rawData) {
     modalBody.style.overflow = 'auto';
 }
 
+document.getElementById('modalBack').addEventListener('click', closeModal);
+document.getElementById('modalClose').addEventListener('click', closeModal);
 
 /* ===== 初期ロード処理 ===== */
 
@@ -2085,7 +2087,6 @@ if (modalImage) {
   // 時計
   updateNowDateTime();
   setInterval(updateNowDateTime, 1000);
-});
 
 if (PAGE_TYPE !== 'com') {
   callGAS("getButtonData", {
