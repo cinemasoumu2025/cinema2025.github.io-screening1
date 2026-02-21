@@ -480,23 +480,25 @@ updateClock();
    GAS（初回のみ）
 ============================= */
 async function callGAS(action){
-  const url = "https://script.google.com/macros/s/AKfycbxUFw-429hMxKWpLbpIUorTAI3xCurSYnYezDjk1CbM43EZubgtYKif2PhhrbJwIn7myQ/exec";
+  const url = "https://script.google.com/macros/s/AKfycbx8JpcIKWkFLX0hizak-KaFaVAg2u-_eTl7htbtcHtCqgailA8BHiTG8nOwTdrNHM_3Dw/exec";
   const query = new URLSearchParams({api:"true",action});
   const res = await fetch(url+"?"+query);
   return await res.json();
 }
+
 
 /* =============================
    初期ロード
 ============================= */
 window.addEventListener("load", async ()=>{
 
+  const pageType = "archive";
+  const siteNo = 0;
+  fetch(
+    "https://script.google.com/macros/s/AKfycbx8JpcIKWkFLX0hizak-KaFaVAg2u-_eTl7htbtcHtCqgailA8BHiTG8nOwTdrNHM_3Dw/exec" +
+    `?api=true&action=logPageView&pageType=${pageType}&siteNo=${siteNo}`
+  );
 
-  // ▼▼▼ これを追加 ▼▼▼
-  callGAS("logPageView", {
-    pageType: "archive",
-    siteNo: 1
-  });
   showLoading();
   allWorks = await callGAS("getAllOldWorkDetails");
   hideLoading();
@@ -702,3 +704,4 @@ window.addEventListener("keydown",e=>{
 
 </body>
 </html>
+
