@@ -381,6 +381,7 @@ body {
   width: 100%;
   border-collapse: collapse;
   margin-top: 8px;
+  table-layout: fixed;   /* ★ 追加 */
 }
 
 #timetable th,
@@ -390,6 +391,17 @@ body {
   font-family: "BIZ UDPゴシック", sans-serif;
   font-size: 0.95rem;
 }
+#timetable th:nth-child(1),
+#timetable td:nth-child(1) { width: 50px; }
+
+#timetable th:nth-child(2),
+#timetable td:nth-child(2) { width: 80px; }
+
+#timetable th:nth-child(3),
+#timetable td:nth-child(3) { width: 90px; }
+
+#timetable th:nth-child(5),
+#timetable td:nth-child(5) { width: 60px; }
 
 #timetable thead th {
   background: #f2f2f2;
@@ -1720,13 +1732,18 @@ function initTimetable() {
 // デフォルト表示日
 function getDefaultDayIndex() {
   const today = new Date();
+  today.setHours(0, 0, 0, 0); // ★ 時刻リセット
 
   for (let i = 0; i < timetableDays.length; i++) {
     const d = timetableDays[i];
     const date = new Date(d.year, d.month - 1, d.day);
-    if (today <= date) return i;
+    date.setHours(0, 0, 0, 0); // ★ これも必須
+
+    if (today.getTime() === date.getTime()) return i; // 今日なら即決定
+    if (today < date) return i; // 未来日ならそこ
   }
-  return timetableDays.length - 1;
+
+  return timetableDays.length - 1; // 全部過去なら最終日
 }
 
 // 1日分描画
