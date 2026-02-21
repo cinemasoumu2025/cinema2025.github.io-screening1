@@ -330,10 +330,11 @@ body{
 
   .search-area input,
   .search-area select{
-    width:100%;
+    width:auto;
     box-sizing:border-box;
     margin:5px 0;
   }
+
 
   .btn{
     width:100%;
@@ -396,7 +397,7 @@ body{
 
 
 <div class="header">
-  <h1>過去作品　資料室</h1>
+  <h1>シネマクラブ過去作品　資料室</h1>
   <div id="clock"></div>
 </div>
 
@@ -479,7 +480,7 @@ updateClock();
    GAS（初回のみ）
 ============================= */
 async function callGAS(action){
-  const url = "https://script.google.com/macros/s/AKfycbypKNG1VTh8QPyr6D7njWfkdalgqR7RwItjQ3LsQ1oK7UOuVLoqpPam81ZioCTb7RNX7w/exec";
+  const url = "https://script.google.com/macros/s/AKfycbxD6Oc3_TRWEuwmJ2x6p9SwzfWfGxWYE-5RAaVGvP528Fz5xhGy2x2IZtR6HvqfWj0t9w/exec";
   const query = new URLSearchParams({api:"true",action});
   const res = await fetch(url+"?"+query);
   return await res.json();
