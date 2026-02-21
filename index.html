@@ -1059,7 +1059,7 @@ body {
   let PAGE_TYPE;
   let SITE_NO;
 
-  const API_URL = "https://script.google.com/macros/s/AKfycbxUFw-429hMxKWpLbpIUorTAI3xCurSYnYezDjk1CbM43EZubgtYKif2PhhrbJwIn7myQ/exec";
+  const API_URL = "https://script.google.com/macros/s/AKfycbx8JpcIKWkFLX0hizak-KaFaVAg2u-_eTl7htbtcHtCqgailA8BHiTG8nOwTdrNHM_3Dw/exec";
   function callGAS(action, params = {}) {
 
   // ===== GAS環境 =====
@@ -2077,10 +2077,14 @@ lightbox.addEventListener("click", (e) => {
     });
 
   // ログ
-  callGAS('logPageView', {
-    pageType: PAGE_TYPE,
-    siteNo: SITE_NO
-  });
+  sendLog()
+
+  function sendLog(){
+  fetch(
+    API_URL +
+    `?api=true&action=logPageView&pageType=${PAGE_TYPE}&siteNo=${SITE_NO}`
+  );
+  }
 
   // 時計
   updateNowDateTime();
