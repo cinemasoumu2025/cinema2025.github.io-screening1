@@ -465,6 +465,14 @@ let cacheDetails = {};
 let currentPage = 1;
 let totalCount = 0;
 
+const NOTE_MAP = {
+  A: 'お子様でもお楽しみいただけます',
+  B: '流血描写を含みます　観覧の際はご注意ください',
+  C: '飲酒や喫煙の描写を含みます　観覧の際はご注意ください',
+  D: '災害描写を含みます　観覧の際はご注意ください',
+  E: '一般のお客様はご覧いただけません'
+};
+  
 /* =============================
    時計
 ============================= */
@@ -664,13 +672,27 @@ function showDetail(id){
     ? `<div><a href="${d.cmUrl}" target="_blank">▶ CMを見る</a></div>`
     : `<div class="no-cm">CMなし</div>`;
 
-  modalBody.innerHTML=`
-    <h2>${d.title || "タイトル未設定"} ｜約${d.duration || "-"}分</h2>
-    <p>${d.year || "-"}年 ${d.eventName || ""}</p>
-    <p>${d.description || ""}</p>
-    <div id="imgArea">${renderImage()}</div>
-    ${cmHtml}
-  `;
+// 🔥 注意表示生成
+let cautionHtml = '';
+
+if (Array.isArray(d.cautions) && d.cautions.length > 0) {
+  const items = d.cautions
+    .map(c => NOTE_MAP[c] || '')
+    .filter(Boolean)
+    .map(text => `<li>${text}</li>`)
+    .join('');
+
+  if (items) {
+    cautionHtml = `
+      <div style="margin-top:15px; padding:15px; background:#fff8e5; border-left:5px solid #c6a85a;">
+        <div style="font-weight:600; margin-bottom:5px;">⚠ 注意事項</div>
+        <ul style="margin:0; padding-left:18px;">
+          ${items}
+        </ul>
+      </div>
+    `;
+  }
+}
 
   modal.classList.add("active");
 }
