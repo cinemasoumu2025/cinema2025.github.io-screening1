@@ -693,6 +693,16 @@ if (Array.isArray(d.cautions) && d.cautions.length > 0) {
     `;
   }
 }
+  modalBody.innerHTML=`
+  <h2>${d.title || "タイトル未設定"} ｜約${d.duration || "-"}分</h2>
+  <p>${d.year || "-"}年 ${d.eventName || ""}</p>
+
+  ${cautionHtml}
+
+  <p>${d.description || ""}</p>
+  <div id="imgArea">${renderImage()}</div>
+  ${cmHtml}
+`;
 
   modal.classList.add("active");
 }
