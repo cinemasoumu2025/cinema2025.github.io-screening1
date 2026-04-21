@@ -683,7 +683,7 @@ function showDetail(id){
      </div>`
   　: '';
 
-  let fullHtml = d.fullUrl
+  let fullHtml = (d.fullUrl && d.showFull)
   ? `<div style="margin-top:15px;">
   　　<button class="btn btn-dark"
        onclick="openVideo('${d.fullUrl}')">
