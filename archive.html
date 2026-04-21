@@ -683,6 +683,15 @@ function showDetail(id){
      </div>`
   　: '';
 
+  let fullHtml = d.fullUrl
+  ? `<div style="margin-top:15px;">
+  　　<button class="btn btn-dark"
+       onclick="openVideo('${d.fullUrl}')">
+       ▶ 本編を見る
+     </button>`
+    </div>`
+  : '';
+
 // 🔥 注意表示生成
 let cautionHtml = '';
 
@@ -713,6 +722,7 @@ modalBody.innerHTML=`
   <p>${d.description || ""}</p>
   <div id="imgArea">${renderImage()}</div>
   ${cmHtml}
+  ${fullHtml}
 `;
 
   modal.classList.add("active");
@@ -745,22 +755,22 @@ function openVideo(url){
     `;
 
     videoModal.style.display = "flex";
+    return;
   }
 
-  // Drive
-  else if(url.includes("drive.google.com")){
-    window.open(url, "_blank"); // ← 外部で開く
+  // Google Drive → 別タブ
+  if(url.includes("drive.google.com")){
+    window.open(url, "_blank");
+    return;
   }
 
-  // その他（MP4など）
-  else{
-    videoContainer.innerHTML = `
-      <video controls autoplay style="max-width:90%; max-height:90%;">
-        <source src="${url}">
-      </video>
-    `;
-    videoModal.style.display = "flex";
-  }
+  // MP4など
+  videoContainer.innerHTML = `
+    <video controls autoplay style="max-width:90%; max-height:90%;">
+      <source src="${url}">
+    </video>
+  `;
+  videoModal.style.display = "flex";
 }
   
 
