@@ -489,6 +489,7 @@ updateClock();
 ============================= */
 async function callGAS(action){
   const url = "https://script.google.com/macros/s/AKfycbyQraiN6Z4glPOvBFCEkpltYa1X6d3lMpkMMripcjAqZAcJPcT389BXHRgKkOMA_M2-vw/exec";
+  
   const query = new URLSearchParams({api:"true",action});
   const res = await fetch(url+"?"+query);
   return await res.json();
