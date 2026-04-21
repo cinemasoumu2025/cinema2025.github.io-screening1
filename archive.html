@@ -456,6 +456,11 @@ body{
   <div class="close-btn" onclick="closeLight()">☒</div>
   <img id="lightImg">
 </div>
+  <!-- ビデオボックス -->
+  <div id="videoModal" class="lightbox">
+  <div class="close-btn" onclick="closeVideo()">☒</div>
+  <div id="videoContainer"></div>
+</div>
 
 <script>
 
@@ -670,13 +675,13 @@ function showDetail(id){
   };
 
 　let cmHtml = d.cmUrl
-  ? `<div style="margin-top:15px;">
+  　? `<div style="margin-top:15px;">
        <button class="btn btn-primary"
-         onclick="window.open('${d.cmUrl}','_blank')">
+         onclick="openVideo('${d.cmUrl}')">
          ▶ CMを見る
        </button>
      </div>`
-  : '';
+  　: '';
 
 // 🔥 注意表示生成
 let cautionHtml = '';
@@ -712,6 +717,52 @@ modalBody.innerHTML=`
 
   modal.classList.add("active");
 }
+
+/* =============================
+   動画再生
+============================= */
+function openVideo(url){
+
+  let html = "";
+
+  /* YouTube判定 */
+  if(url.includes("youtube.com") || url.includes("youtu.be")){
+    
+    let id = "";
+
+    if(url.includes("youtu.be")){
+      id = url.split("/").pop();
+    }else{
+      id = new URL(url).searchParams.get("v");
+    }
+
+    html = `
+      <iframe width="800" height="450"
+        src="https://www.youtube.com/embed/${id}"
+        frameborder="0"
+        allowfullscreen>
+      </iframe>
+    `;
+  }
+
+  /* Drive or MP4 */
+  else{
+    html = `
+      <video controls autoplay style="max-width:90%; max-height:90%;">
+        <source src="${url}">
+      </video>
+    `;
+  }
+
+  videoContainer.innerHTML = html;
+  videoModal.style.display = "flex";
+}
+
+function closeVideo(){
+  videoModal.style.display = "none";
+  videoContainer.innerHTML = ""; // 停止
+}
+  
 
 /* =============================
    共通UI
