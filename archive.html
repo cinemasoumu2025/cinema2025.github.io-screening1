@@ -488,7 +488,7 @@ updateClock();
    GAS（初回のみ）
 ============================= */
 async function callGAS(action){
-  const url = "https://script.google.com/macros/s/AKfycbzSsGSdADkTP7BocAX7fdsbt3D11Kzn3Dw1BYM5pCNGiZUov3RRe01xT5ephDDdSm2Rog/exec";
+  const url = "https://script.google.com/macros/s/AKfycbxF0xIEsgzQe4oe8Xj67f-m1Mu2ByTV2l4UDETQdOmHmR0FwzkzMlROubz6vFB3utD1zQ/exec";
   const query = new URLSearchParams({api:"true",action});
   const res = await fetch(url+"?"+query);
   return await res.json();
@@ -503,7 +503,7 @@ window.addEventListener("load", async ()=>{
   const pageType = "archive";
   const siteNo = 0;
   fetch(
-    "https://script.google.com/macros/s/AKfycbzSsGSdADkTP7BocAX7fdsbt3D11Kzn3Dw1BYM5pCNGiZUov3RRe01xT5ephDDdSm2Rog/exec" +
+    "https://script.google.com/macros/s/AKfycbxF0xIEsgzQe4oe8Xj67f-m1Mu2ByTV2l4UDETQdOmHmR0FwzkzMlROubz6vFB3utD1zQ/exec" +
     `?api=true&action=logPageView&pageType=${pageType}&siteNo=${siteNo}`
   );
 
