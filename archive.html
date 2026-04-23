@@ -592,14 +592,14 @@ function renderPage(perPage){
   pageItems.forEach(w=>{
 
     // タイトル・制作年・所要時間以外にデータがあるか判定
-    const hasDetail =
-      (w.description && w.description.trim()) ||
-      (w.genre && w.genre.trim()) ||
-      (w.mainImage && w.mainImage.trim()) ||
-      (Array.isArray(w.subImages) && w.subImages.length > 0) ||
-      (w.cmUrl && w.cmUrl.trim()) ||
-      (w.fullUrl && w.fullUrl.trim()) ||
-      (Array.isArray(w.cautions) && w.cautions.length > 0);
+const hasDetail =
+  (typeof w.description === "string" && w.description.trim()) ||
+  (Array.isArray(w.genre) ? w.genre.length > 0 : String(w.genre || "").trim()) ||
+  (w.mainImage && String(w.mainImage).trim()) ||
+  (Array.isArray(w.subImages) && w.subImages.length > 0) ||
+  (w.cmUrl && String(w.cmUrl).trim()) ||
+  (w.fullUrl && String(w.fullUrl).trim()) ||
+  (Array.isArray(w.cautions) && w.cautions.length > 0);
 
     list.innerHTML += `
       <div class="card">
