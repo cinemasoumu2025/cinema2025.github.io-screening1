@@ -580,6 +580,7 @@ function searchOld(page=1){
 /* =============================
    ページ描画
 ============================= */
+
 function renderPage(perPage){
 
   const start = (currentPage - 1) * perPage;
@@ -589,22 +590,48 @@ function renderPage(perPage){
   list.innerHTML="";
 
   pageItems.forEach(w=>{
-    list.innerHTML+=`
+
+    // タイトル・制作年・所要時間以外にデータがあるか判定
+    const hasDetail =
+      (w.description && w.description.trim()) ||
+      (w.genre && w.genre.trim()) ||
+      (w.eventName && w.eventName.trim()) ||
+      (w.mainImage && w.mainImage.trim()) ||
+      (Array.isArray(w.subImages) && w.subImages.length > 0) ||
+      (w.cmUrl && w.cmUrl.trim()) ||
+      (w.fullUrl && w.fullUrl.trim()) ||
+      (Array.isArray(w.cautions) && w.cautions.length > 0);
+
+    list.innerHTML += `
       <div class="card">
         <div>
           <div style="font-size:18px; font-weight:600;">
             ${w.title}
+            <span style="font-size:14px; color:#666; margin-left:8px;">
+              ｜約${w.duration || "-"}分
+            </span>
           </div>
+
           <div style="font-size:13px; color:#888;">
             ${w.year}年
           </div>
         </div>
-        <button class="btn btn-primary" onclick="showDetail('${w.workId}')">
-          詳しく見る
-        </button>
+
+        ${
+          hasDetail
+          ? `
+            <button class="btn btn-primary" onclick="showDetail('${w.workId}')">
+              詳しく見る
+            </button>
+          `
+          : ""
+        }
       </div>
     `;
   });
+
+  renderPager(perPage,start+1,Math.min(end,totalCount));
+}
 
   renderPager(perPage,start+1,Math.min(end,totalCount));
 }
