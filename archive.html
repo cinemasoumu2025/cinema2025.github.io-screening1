@@ -592,14 +592,22 @@ function renderPage(perPage){
   pageItems.forEach(w=>{
 
     // タイトル・制作年・所要時間以外にデータがあるか判定
-const hasDetail =
+const hasBasicDetail =
   (typeof w.description === "string" && w.description.trim()) ||
-  (Array.isArray(w.genre) ? w.genre.length > 0 : String(w.genre || "").trim()) ||
+  (Array.isArray(w.genre)
+    ? w.genre.length > 0
+    : String(w.genre || "").trim()) ||
   (w.mainImage && String(w.mainImage).trim()) ||
   (Array.isArray(w.subImages) && w.subImages.length > 0) ||
-  (w.cmUrl && String(w.cmUrl).trim()) ||
-  (w.fullUrl && String(w.fullUrl).trim()) ||
-  (Array.isArray(w.cautions) && w.cautions.length > 0);
+  (w.cmUrl && String(w.cmUrl).trim());
+
+// fullUrl が表示可能か
+const hasVisibleFull =
+  (w.fullUrl && String(w.fullUrl).trim()) &&
+  w.showFull === "表示";
+
+// 詳細ボタンを出す条件
+const hasDetail = hasBasicDetail || hasVisibleFull;
 
     list.innerHTML += `
       <div class="card">
